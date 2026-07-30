@@ -1,0 +1,36 @@
+# See OSINT Tool Configuration
+# Copy this file to ~/.config/see/config.yaml or ./config.yaml
+
+# API Keys (can also be set via environment variables)
+api_keys:
+  numverify: ""          # Get free key at https://numverify.com
+  abstract: ""           # Get free key at https://abstractapi.com
+  opencellid: ""         # Get free key at https://opencellid.org
+
+# Tor configuration for anonymous requests
+tor:
+  enabled: false         # Enable Tor proxy
+  socks_port: 9050       # Tor SOCKS port
+  control_port: 9051     # Tor control port (for circuit rotation)
+  max_requests_per_circuit: 10  # Rotate circuit after N requests
+  auto_rotate: true      # Auto-rotate when max reached
+  exit_countries: []     # Empty = random, or ["us", "de", "nl"]
+
+# Default lookup settings
+lookup:
+  timeout: 30
+  retries: 3
+  modules:
+    - phonenumbers
+    - numverify
+
+# Output settings
+output:
+  default_format: "both"  # json, display, both
+  directory: "./results"
+
+# Rate limiting
+rate_limit:
+  numverify_per_minute: 10
+  opencellid_per_minute: 10
+  hibp_delay_seconds: 3
