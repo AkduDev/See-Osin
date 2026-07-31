@@ -53,14 +53,14 @@ class NumLookupModule(BaseModule):
         logger.info(f"Running NumLookupAPI lookup for {phone.e164}")
 
         headers = {"apikey": api_key}
+        url = f"{NUMLOOKUP_BASE_URL}/{phone.e164}"
 
         async with HTTPClient(
             timeout=config.lookup.timeout,
             retries=config.lookup.retries,
         ) as client:
             data = await client.get(
-                NUMLOOKUP_BASE_URL,
-                params={"phone": phone.e164},
+                url,
                 headers=headers,
             )
 
@@ -79,7 +79,7 @@ class NumLookupModule(BaseModule):
                 "line_type": data.get("line_type", "unknown"),
                 "country": data.get("country_name", "Unknown"),
                 "country_code": data.get("country_code", ""),
-                "international_format": data.get("intl_format", ""),
+                "international_format": data.get("international_format", ""),
                 "local_format": data.get("local_format", ""),
                 "source": "numlookup",
             }
