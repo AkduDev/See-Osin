@@ -88,6 +88,7 @@ class ModuleAggregator:
             AbstractPersonModule,
             MaigretModule,
             GoogleDorksModule,
+            ReverseLookupModule,
         )
 
         builtin_modules = [
@@ -97,6 +98,7 @@ class ModuleAggregator:
             AbstractPersonModule(),
             MaigretModule(),
             GoogleDorksModule(),
+            ReverseLookupModule(),
         ]
 
         for module in builtin_modules:

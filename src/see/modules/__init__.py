@@ -7,6 +7,7 @@ from see.modules.numlookup_mod import NumLookupModule
 from see.modules.abstract_mod import AbstractPersonModule
 from see.modules.maigret_mod import MaigretModule
 from see.modules.google_dorks_mod import GoogleDorksModule
+from see.modules.reverse_lookup_mod import ReverseLookupModule
 
 __all__ = [
     "BaseModule",
@@ -16,4 +17,5 @@ __all__ = [
     "AbstractPersonModule",
     "MaigretModule",
     "GoogleDorksModule",
+    "ReverseLookupModule",
 ]

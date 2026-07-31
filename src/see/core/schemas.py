@@ -142,7 +142,7 @@ PHONE_TYPE_MAP: dict[int, str] = {}  # Will be populated at runtime
 
 # Default modules for different lookup types
 DEFAULT_MODULES = ["phonenumbers", "numverify", "numlookup", "maigret", "google_dorks"]
-OWNER_MODULES = ["phonenumbers", "numverify", "numlookup", "abstract", "maigret", "google_dorks"]
+OWNER_MODULES = ["phonenumbers", "numverify", "numlookup", "abstract", "maigret", "google_dorks", "reverse_lookup"]
 
 # Module name -> target field mapping
 MODULE_TARGET_FIELDS: dict[str, str] = {
@@ -152,6 +152,7 @@ MODULE_TARGET_FIELDS: dict[str, str] = {
     "abstract": "owner",
     "maigret": "social_profiles",
     "google_dorks": "search_dorks",
+    "reverse_lookup": "owner",
     "opencellid": "location",
     "spam": "spam",
     "hibp": "breaches",

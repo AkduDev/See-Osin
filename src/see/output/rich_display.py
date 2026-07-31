@@ -62,6 +62,24 @@ class RichDisplay:
             if city:
                 table.add_row("City", city)
 
+        # Owner information
+        if result.owner:
+            names = result.owner.get("names", [])
+            primary_name = result.owner.get("primary_name")
+            if primary_name:
+                table.add_row("Owner", f"[bold green]{primary_name}[/bold green]")
+            elif names:
+                table.add_row("Owner", ", ".join(names[:3]))
+
+            search_urls = result.owner.get("search_urls", [])
+            if search_urls:
+                table.add_row("", "")
+                table.add_row("[yellow]Search[/yellow]", "Click links to investigate:")
+                for url_info in search_urls[:5]:
+                    platform = url_info.get("platform", "")
+                    url = url_info.get("url", "")
+                    table.add_row("", f"  [{platform}] {url}")
+
         # Source
         sources = result.modules_used
         if sources:
