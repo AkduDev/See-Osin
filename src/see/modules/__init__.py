@@ -2,11 +2,13 @@
 
 from see.modules.base import BaseModule, BaseProvider
 from see.modules.phones.domain import PhoneDomain
+from see.modules.emails.domain import EmailDomain
 
 __all__ = [
     "BaseModule",
     "BaseProvider",
     "PhoneDomain",
+    "EmailDomain",
 ]
 
 
@@ -14,5 +16,7 @@ def register_all_modules():
     """Register all available modules."""
     from see.core.registry import register_module
     from see.modules.phones.domain import phone_module
+    from see.modules.emails.domain import email_module
     
     register_module(phone_module)
+    register_module(email_module)

@@ -60,6 +60,101 @@ class SocialResult(BaseResult):
 
 
 @dataclass
+class BreachResult(BaseResult):
+    """Result from breach lookup."""
+    
+    email: str = ""
+    breaches: list[dict[str, Any]] = field(default_factory=list)
+    total_breaches: int = 0
+    sources: list[str] = field(default_factory=list)
+
+
+@dataclass
+class DisposableResult(BaseResult):
+    """Result from disposable email check."""
+    
+    email: str = ""
+    is_disposable: bool = False
+    is_webmail: bool = False
+    provider: str = ""
+    mx_found: bool = False
+
+
+@dataclass
+class EmailResult:
+    """Aggregated result for email OSINT."""
+    
+    input_email: str
+    valid: bool = False
+    is_disposable: bool = False
+    is_webmail: bool = False
+    is_free: bool = False
+    
+    # Domain info
+    domain: str = ""
+    provider: str = ""
+    mx_records: list[str] = field(default_factory=list)
+    
+    # Results from providers
+    breaches: BreachResult | None = None
+    disposable: DisposableResult | None = None
+    social_profiles: list[SocialResult] = field(default_factory=list)
+    
+    # Metadata
+    modules_used: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    query_time: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        result: dict[str, Any] = {
+            "input": self.input_email,
+            "query_time": self.query_time,
+            "modules_used": self.modules_used,
+            "errors": self.errors,
+            "email": {
+                "valid": self.valid,
+                "is_disposable": self.is_disposable,
+                "is_webmail": self.is_webmail,
+                "is_free": self.is_free,
+                "domain": self.domain,
+                "provider": self.provider,
+                "mx_records": self.mx_records,
+            },
+        }
+        
+        if self.breaches:
+            result["breaches"] = {
+                "total": self.breaches.total_breaches,
+                "sources": self.breaches.sources,
+                "breaches": self.breaches.breaches,
+            }
+        
+        if self.disposable:
+            result["disposable"] = {
+                "is_disposable": self.disposable.is_disposable,
+                "is_webmail": self.disposable.is_webmail,
+                "provider": self.disposable.provider,
+                "mx_found": self.disposable.mx_found,
+            }
+        
+        if self.social_profiles:
+            result["social_profiles"] = [
+                {
+                    "platform": p.platform,
+                    "username": p.username,
+                    "name": p.name,
+                    "url": p.url,
+                    "found": p.found,
+                    "status": p.status,
+                }
+                for p in self.social_profiles
+            ]
+        
+        return result
+
+
+@dataclass
 class PhoneResult:
     """Aggregated result for phone number OSINT."""
     

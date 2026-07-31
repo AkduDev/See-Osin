@@ -133,6 +133,87 @@ async def _phone_scan(
 
 
 # ============================================================================
+# Email Commands
+# ============================================================================
+
+
+@app.command()
+def email_scan(
+    email: str = typer.Argument(help="Email address to scan"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
+    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+) -> None:
+    """Complete email scan."""
+    asyncio.run(_email_scan(email, output, format, "scan"))
+
+
+@app.command()
+def email_breaches(
+    email: str = typer.Argument(help="Email address to check breaches"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
+    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+) -> None:
+    """Check email breaches."""
+    asyncio.run(_email_scan(email, output, format, "breaches"))
+
+
+@app.command()
+def email_social(
+    email: str = typer.Argument(help="Email address to find social profiles"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
+    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+) -> None:
+    """Find social media profiles by email."""
+    asyncio.run(_email_scan(email, output, format, "social"))
+
+
+@app.command()
+def email_disposable(
+    email: str = typer.Argument(help="Email address to check if disposable"),
+) -> None:
+    """Check if email is disposable."""
+    asyncio.run(_email_scan(email, None, "display", "disposable"))
+
+
+async def _email_scan(
+    email: str,
+    output: Path | None,
+    format: str,
+    scan_type: str,
+) -> None:
+    """Common email scan implementation."""
+    from see.modules.emails.domain import EmailDomain
+    
+    domain = EmailDomain()
+    
+    if scan_type == "scan":
+        result = await domain.scan(email)
+    elif scan_type == "breaches":
+        result = await domain.scan_breaches(email)
+    elif scan_type == "social":
+        result = await domain.scan_social(email)
+    elif scan_type == "disposable":
+        result = await domain.scan_disposable(email)
+    else:
+        raise ValueError(f"Unknown scan type: {scan_type}")
+    
+    # Display results
+    display = RichDisplay()
+    json_fmt = JSONFormatter()
+    
+    if format in ("display", "both"):
+        display.display_email(result)
+    
+    if format in ("json", "both"):
+        if output:
+            filepath = json_fmt.save(result.to_dict(), output.name)
+            typer.echo(f"\nResults saved to {filepath}", err=True)
+        elif format == "json":
+            import json
+            typer.echo(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+
+
+# ============================================================================
 # Legacy Commands (for backward compatibility)
 # ============================================================================
 
