@@ -84,6 +84,7 @@ class ModuleAggregator:
         from see.modules import (
             PhonenumbersModule,
             NumVerifyModule,
+            NumLookupModule,
             AbstractPersonModule,
             MaigretModule,
             GoogleDorksModule,
@@ -92,6 +93,7 @@ class ModuleAggregator:
         builtin_modules = [
             PhonenumbersModule(),
             NumVerifyModule(),
+            NumLookupModule(),
             AbstractPersonModule(),
             MaigretModule(),
             GoogleDorksModule(),
