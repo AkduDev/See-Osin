@@ -141,8 +141,8 @@ class TorDict(TypedDict, total=False):
 PHONE_TYPE_MAP: dict[int, str] = {}  # Will be populated at runtime
 
 # Default modules for different lookup types
-DEFAULT_MODULES = ["phonenumbers", "numverify", "numlookup", "maigret", "google_dorks"]
-OWNER_MODULES = ["phonenumbers", "numverify", "numlookup", "abstract", "maigret", "google_dorks", "reverse_lookup"]
+DEFAULT_MODULES = ["phonenumbers", "numverify", "numlookup", "maigret", "google_dorks", "social_media"]
+OWNER_MODULES = ["phonenumbers", "numverify", "numlookup", "abstract", "maigret", "google_dorks", "reverse_lookup", "social_media"]
 
 # Module name -> target field mapping
 MODULE_TARGET_FIELDS: dict[str, str] = {
@@ -153,6 +153,7 @@ MODULE_TARGET_FIELDS: dict[str, str] = {
     "maigret": "social_profiles",
     "google_dorks": "search_dorks",
     "reverse_lookup": "owner",
+    "social_media": "social_profiles",
     "opencellid": "location",
     "spam": "spam",
     "hibp": "breaches",

@@ -80,6 +80,33 @@ class RichDisplay:
                     url = url_info.get("url", "")
                     table.add_row("", f"  [{platform}] {url}")
 
+        # Social media profiles
+        if result.social_profiles:
+            profiles = result.social_profiles.get("profiles", [])
+            search_urls = result.social_profiles.get("search_urls", [])
+
+            if profiles:
+                table.add_row("", "")
+                table.add_row("[bold magenta]Social[/bold magenta]", "Profiles found:")
+                for profile in profiles[:6]:
+                    platform = profile.get("platform", "")
+                    username = profile.get("username", "")
+                    name = profile.get("name", "")
+                    url = profile.get("url", "")
+
+                    if username:
+                        table.add_row("", f"  [{platform}] @{username}")
+                    elif name:
+                        table.add_row("", f"  [{platform}] {name}")
+
+            if search_urls:
+                table.add_row("", "")
+                table.add_row("[yellow]Search[/yellow]", "Investigate manually:")
+                for url_info in search_urls[:5]:
+                    platform = url_info.get("platform", "")
+                    url = url_info.get("url", "")
+                    table.add_row("", f"  [{platform}] {url}")
+
         # Source
         sources = result.modules_used
         if sources:
