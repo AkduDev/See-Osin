@@ -1,11 +1,9 @@
-"""Rich terminal display for See OSINT tool."""
+"""Rich terminal display for See OSINT framework."""
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
-from see.core.aggregator import OSINTResult
 from see.utils.logger import get_logger
 
 logger = get_logger("rich_display")
@@ -17,12 +15,12 @@ class RichDisplay:
     def __init__(self):
         self.console = Console()
 
-    def display(self, result: OSINTResult) -> None:
+    def display_phone(self, result) -> None:
         """
-        Display OSINT result in terminal.
-
+        Display phone scan result in terminal.
+        
         Args:
-            result: OSINTResult to display
+            result: PhoneResult to display
         """
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column("Key", style="cyan", width=12)
@@ -32,86 +30,42 @@ class RichDisplay:
         table.add_row("Phone", result.input_number)
         table.add_row("", "")
 
-        if result.parsed:
-            # Validity
-            valid_icon = "[green]✓ Yes[/green]" if result.parsed.is_valid else "[red]✗ No[/red]"
-            table.add_row("Valid", valid_icon)
+        # Validity
+        valid_icon = "[green]✓ Yes[/green]" if result.valid else "[red]✗ No[/red]"
+        table.add_row("Valid", valid_icon)
 
-            # Type
-            type_display = result.parsed.number_type.replace("_", " ").title()
+        # Type
+        if result.carrier:
+            type_display = result.carrier.line_type.replace("_", " ").title() if result.carrier.line_type else "Unknown"
             table.add_row("Type", type_display)
 
-            # Country
-            table.add_row("Country", f"{result.parsed.country} (+{result.parsed.country_code})")
+        # Country
+        table.add_row("Country", f"{result.country} (+{result.country_code})")
 
-        if result.carrier:
-            carrier_name = result.carrier.get("carrier", "Unknown")
-            if carrier_name and carrier_name != "Unknown":
-                table.add_row("Carrier", carrier_name)
+        # Carrier
+        if result.carrier and result.carrier.carrier:
+            table.add_row("Carrier", result.carrier.carrier)
 
-            location = result.carrier.get("location", "")
-            if location and location != "Unknown":
-                table.add_row("Location", location)
+        # Location
+        if result.carrier and result.carrier.location:
+            table.add_row("Location", result.carrier.location)
 
-            timezone_val = result.carrier.get("timezone", "")
-            if timezone_val and timezone_val != "Unknown":
-                table.add_row("Timezone", timezone_val)
+        # Timezone
+        if result.carrier and result.carrier.timezone:
+            table.add_row("Timezone", result.carrier.timezone)
 
-        if result.location:
-            city = result.location.get("city", "")
-            if city:
-                table.add_row("City", city)
+        # Owner
+        if result.owner and result.owner.name:
+            table.add_row("Owner", f"[bold green]{result.owner.name}[/bold green]")
 
-        # Owner information
-        if result.owner:
-            names = result.owner.get("names", [])
-            primary_name = result.owner.get("primary_name")
-            if primary_name:
-                table.add_row("Owner", f"[bold green]{primary_name}[/bold green]")
-            elif names:
-                table.add_row("Owner", ", ".join(names[:3]))
-
-            search_urls = result.owner.get("search_urls", [])
-            if search_urls:
-                table.add_row("", "")
-                table.add_row("[yellow]Search[/yellow]", "Click links to investigate:")
-                for url_info in search_urls[:5]:
-                    platform = url_info.get("platform", "")
-                    url = url_info.get("url", "")
-                    table.add_row("", f"  [{platform}] {url}")
-
-        # Social media profiles
-        if result.social_profiles:
-            profiles = result.social_profiles.get("profiles", [])
-            search_urls = result.social_profiles.get("search_urls", [])
-
-            if profiles:
-                table.add_row("", "")
-                table.add_row("[bold magenta]Social[/bold magenta]", "Profiles found:")
-                for profile in profiles[:6]:
-                    platform = profile.get("platform", "")
-                    username = profile.get("username", "")
-                    name = profile.get("name", "")
-                    url = profile.get("url", "")
-
-                    if username:
-                        table.add_row("", f"  [{platform}] @{username}")
-                    elif name:
-                        table.add_row("", f"  [{platform}] {name}")
-
-            if search_urls:
-                table.add_row("", "")
-                table.add_row("[yellow]Search[/yellow]", "Investigate manually:")
-                for url_info in search_urls[:5]:
-                    platform = url_info.get("platform", "")
-                    url = url_info.get("url", "")
-                    table.add_row("", f"  [{platform}] {url}")
+        # Risk
+        if result.owner and result.owner.risk_level:
+            table.add_row("Risk", result.owner.risk_level)
 
         # Source
-        sources = result.modules_used
-        if sources:
+        if result.modules_used:
             table.add_row("", "")
-            table.add_row("Source", ", ".join(sources))
+            table.add_row("Source", ", ".join(result.modules_used))
 
         # Errors
         if result.errors:
@@ -129,9 +83,8 @@ class RichDisplay:
 
         self.console.print(panel)
 
-    def display_json(self, result: OSINTResult) -> None:
+    def display_json(self, data: dict) -> None:
         """Display result as formatted JSON."""
         import json
-        data = result.to_dict()
         formatted = json.dumps(data, indent=2, ensure_ascii=False)
         self.console.print_json(formatted)

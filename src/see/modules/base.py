@@ -1,88 +1,108 @@
-"""Base module interface for See OSINT tool."""
+"""Base classes for OSINT modules and providers."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any
 
-from see.core.parser import PhoneInfo
+from see.core.types import CarrierResult, OwnerResult, SocialResult
 from see.utils.config import AppConfig
+from see.utils.logger import get_logger
+
+logger = get_logger("module_base")
 
 
 class BaseModule(ABC):
     """
-    Abstract base class for all OSINT modules.
-
-    Subclasses must implement:
-    - name: Module identifier
-    - description: Human-readable description
-    - requires_api_key: Whether this module needs an API key
-    - target_field: Which field in OSINTResult this module populates
-    - lookup: The actual lookup logic
-
-    Optional overrides:
-    - is_available: Check if module is ready (default: True)
+    Base class for all OSINT modules.
+    
+    Each module represents a domain (phones, emails, etc)
+    and coordinates multiple providers for that domain.
     """
-
+    
     @property
     @abstractmethod
     def name(self) -> str:
-        """Module name identifier (e.g., 'phonenumbers', 'numverify')."""
-        pass
-
+        """Module name."""
+        ...
+    
     @property
     @abstractmethod
     def description(self) -> str:
-        """Module description for display purposes."""
-        pass
+        """Module description."""
+        ...
+    
+    @property
+    @abstractmethod
+    def domain(self) -> str:
+        """Domain this module handles (phones, emails, etc)."""
+        ...
+    
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Check if module is available."""
+        ...
+    
+    @abstractmethod
+    async def scan(self, target: str, **kwargs) -> Any:
+        """Perform OSINT scan on target."""
+        ...
 
+
+class BaseProvider(ABC):
+    """
+    Base class for all API providers.
+    
+    Providers are responsible for fetching data from
+    external APIs and services.
+    """
+    
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Provider name."""
+        ...
+    
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """Provider description."""
+        ...
+    
     @property
     @abstractmethod
     def requires_api_key(self) -> bool:
-        """Whether this module requires an API key to function."""
-        pass
-
+        """Whether this provider requires an API key."""
+        ...
+    
     @property
+    def supports_carrier(self) -> bool:
+        """Whether this provider supports carrier lookup."""
+        return False
+    
+    @property
+    def supports_owner(self) -> bool:
+        """Whether this provider supports owner lookup."""
+        return False
+    
+    @property
+    def supports_social(self) -> bool:
+        """Whether this provider supports social media lookup."""
+        return False
+    
     @abstractmethod
-    def target_field(self) -> str:
-        """
-        The field name in OSINTResult this module populates.
-
-        Examples:
-        - 'carrier' for carrier lookup modules
-        - 'owner' for owner/name lookup modules
-        - 'social_profiles' for social media OSINT
-        - 'search_dorks' for search engine dorks
-        - 'location' for geolocation modules
-        """
-        pass
-
-    @property
     def is_available(self) -> bool:
-        """
-        Check if this module is ready to use.
-
-        Default implementation returns True. Override in subclasses
-        that require API keys or external dependencies.
-
-        Returns:
-            True if module can be used, False otherwise
-        """
-        return True
-
-    @abstractmethod
-    async def lookup(self, phone: PhoneInfo, config: AppConfig) -> dict[str, Any] | None:
-        """
-        Perform lookup for the given phone number.
-
-        Args:
-            phone: Parsed phone number information
-            config: Application configuration
-
-        Returns:
-            Dictionary with lookup results, or None if no data available
-        """
-        pass
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}(name='{self.name}', target='{self.target_field}')>"
+        """Check if provider is available (API key configured, etc)."""
+        ...
+    
+    async def get_carrier(self, phone: str, config: AppConfig) -> CarrierResult | None:
+        """Get carrier information for phone number."""
+        return None
+    
+    async def get_owner(self, phone: str, config: AppConfig) -> OwnerResult | None:
+        """Get owner information for phone number."""
+        return None
+    
+    async def get_social(self, phone: str, config: AppConfig) -> list[SocialResult]:
+        """Get social media profiles for phone number."""
+        return []

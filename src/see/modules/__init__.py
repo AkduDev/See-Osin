@@ -1,23 +1,18 @@
-"""OSINT modules for phone number investigation."""
+"""OSINT modules for See framework."""
 
-from see.modules.base import BaseModule
-from see.modules.phonenumbers_mod import PhonenumbersModule
-from see.modules.numverify_mod import NumVerifyModule
-from see.modules.numlookup_mod import NumLookupModule
-from see.modules.abstract_mod import AbstractPersonModule
-from see.modules.maigret_mod import MaigretModule
-from see.modules.google_dorks_mod import GoogleDorksModule
-from see.modules.reverse_lookup_mod import ReverseLookupModule
-from see.modules.social_media_mod import SocialMediaModule
+from see.modules.base import BaseModule, BaseProvider
+from see.modules.phones.domain import PhoneDomain
 
 __all__ = [
     "BaseModule",
-    "PhonenumbersModule",
-    "NumVerifyModule",
-    "NumLookupModule",
-    "AbstractPersonModule",
-    "MaigretModule",
-    "GoogleDorksModule",
-    "ReverseLookupModule",
-    "SocialMediaModule",
+    "BaseProvider",
+    "PhoneDomain",
 ]
+
+
+def register_all_modules():
+    """Register all available modules."""
+    from see.core.registry import register_module
+    from see.modules.phones.domain import phone_module
+    
+    register_module(phone_module)
