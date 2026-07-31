@@ -6,6 +6,7 @@ api_keys:
   numverify: ""          # Get free key at https://numverify.com
   abstract: ""           # Get free key at https://abstractapi.com
   opencellid: ""         # Get free key at https://opencellid.org
+  numlookup: ""          # Get free key at https://numlookupapi.com (100 req/month)
 
 # Tor configuration for anonymous requests
 tor:

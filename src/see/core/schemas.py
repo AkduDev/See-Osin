@@ -118,6 +118,7 @@ class APIKeysDict(TypedDict, total=False):
     numverify: str
     abstract: str
     opencellid: str
+    numlookup: str
 
 
 class TorDict(TypedDict, total=False):
@@ -140,13 +141,14 @@ class TorDict(TypedDict, total=False):
 PHONE_TYPE_MAP: dict[int, str] = {}  # Will be populated at runtime
 
 # Default modules for different lookup types
-DEFAULT_MODULES = ["phonenumbers", "numverify", "maigret", "google_dorks"]
-OWNER_MODULES = ["phonenumbers", "numverify", "abstract", "maigret", "google_dorks"]
+DEFAULT_MODULES = ["phonenumbers", "numverify", "numlookup", "maigret", "google_dorks"]
+OWNER_MODULES = ["phonenumbers", "numverify", "numlookup", "abstract", "maigret", "google_dorks"]
 
 # Module name -> target field mapping
 MODULE_TARGET_FIELDS: dict[str, str] = {
     "phonenumbers": "carrier",
     "numverify": "carrier",
+    "numlookup": "carrier",
     "abstract": "owner",
     "maigret": "social_profiles",
     "google_dorks": "search_dorks",

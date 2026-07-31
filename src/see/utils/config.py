@@ -14,6 +14,7 @@ class APIKeys(BaseModel):
     numverify: str = ""
     abstract: str = ""
     opencellid: str = ""
+    numlookup: str = ""
 
 
 class TorConfig(BaseModel):
@@ -93,6 +94,12 @@ def load_config(config_path: Optional[Path] = None) -> AppConfig:
         if "api_keys" not in config_data:
             config_data["api_keys"] = {}
         config_data["api_keys"]["abstract"] = env_key
+
+    env_key = os.environ.get("SEE_NUMLOOKUP_KEY")
+    if env_key:
+        if "api_keys" not in config_data:
+            config_data["api_keys"] = {}
+        config_data["api_keys"]["numlookup"] = env_key
 
     # Tor environment variables
     tor_enabled = os.environ.get("SEE_TOR_ENABLED")
