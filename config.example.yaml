@@ -1,21 +1,21 @@
 # See OSINT Tool Configuration
-# Copy this file to ~/.config/see/config.yaml or ./config.yaml
+# API keys can be set here or via environment variables
+# Environment variables take priority over config file values
+# See .env.example for available environment variables
 
-# API Keys (can also be set via environment variables)
+# API Keys (leave empty to use environment variables)
 api_keys:
-  numverify: ""          # Get free key at https://numverify.com
-  abstract: ""           # Get free key at https://abstractapi.com
-  opencellid: ""         # Get free key at https://opencellid.org
-  numlookup: ""          # Get free key at https://numlookupapi.com (100 req/month)
+  numlookup: ""
+  numverify: ""
+  abstract: ""
 
-# Tor configuration for anonymous requests
+# Tor configuration
 tor:
-  enabled: false         # Enable Tor proxy
-  socks_port: 9050       # Tor SOCKS port
-  control_port: 9051     # Tor control port (for circuit rotation)
-  max_requests_per_circuit: 10  # Rotate circuit after N requests
-  auto_rotate: true      # Auto-rotate when max reached
-  exit_countries: []     # Empty = random, or ["us", "de", "nl"]
+  enabled: false
+  socks_port: 9050
+  control_port: 9051
+  max_requests_per_circuit: 10
+  auto_rotate: true
 
 # Default lookup settings
 lookup:
@@ -24,14 +24,17 @@ lookup:
   modules:
     - phonenumbers
     - numverify
+    - numlookup
+    - abstract
+    - maigret
+    - google_dorks
 
 # Output settings
 output:
-  default_format: "both"  # json, display, both
+  default_format: "both"
   directory: "./results"
 
 # Rate limiting
 rate_limit:
   numverify_per_minute: 10
-  opencellid_per_minute: 10
-  hibp_delay_seconds: 3
+  numlookup_per_minute: 10
