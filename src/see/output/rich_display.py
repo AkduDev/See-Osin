@@ -120,6 +120,13 @@ class RichDisplay:
         webmail_icon = "[green]✓ Yes[/green]" if result.is_webmail else "[red]✗ No[/red]"
         table.add_row("Webmail", webmail_icon)
 
+        # MX Records
+        if result.mx_records:
+            table.add_row("", "")
+            table.add_row("MX Records", f"[cyan]{len(result.mx_records)} found[/cyan]")
+            for mx in result.mx_records[:3]:  # Show first 3
+                table.add_row("  →", mx)
+
         # Breaches
         if result.breaches and result.breaches.total_breaches > 0:
             table.add_row("", "")
@@ -131,8 +138,16 @@ class RichDisplay:
         if result.social_profiles:
             table.add_row("", "")
             table.add_row("Social", f"[green]{len(result.social_profiles)} found[/green]")
-            for profile in result.social_profiles[:5]:  # Show first 5
-                table.add_row("  →", f"{profile.platform}: {profile.url}")
+            
+            # Separate found and manual check profiles
+            found_profiles = [p for p in result.social_profiles if p.found]
+            manual_profiles = [p for p in result.social_profiles if not p.found]
+            
+            for profile in found_profiles[:5]:  # Show first 5 found
+                table.add_row("  →", f"[green]{profile.platform}[/green]: {profile.url}")
+            
+            if manual_profiles:
+                table.add_row("  ...", f"[dim]{len(manual_profiles)} more to check manually[/dim]")
 
         # Source
         if result.modules_used:

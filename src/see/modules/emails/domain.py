@@ -12,6 +12,8 @@ from see.modules.emails.providers import (
     HoleheProvider,
     DisposableProvider,
     SocialEmailProvider,
+    EmailIntelligenceProvider,
+    ReverseEmailProvider,
 )
 from see.utils.config import AppConfig, load_config
 from see.utils.logger import get_logger
@@ -52,6 +54,8 @@ class EmailDomain(BaseModule):
             HoleheProvider(),
             DisposableProvider(),
             SocialEmailProvider(),
+            EmailIntelligenceProvider(),
+            ReverseEmailProvider(),
         ]
         
         # Filter to only available providers
@@ -66,7 +70,7 @@ class EmailDomain(BaseModule):
     
     @property
     def description(self) -> str:
-        return "Email OSINT - breaches, disposable, social media"
+        return "Email OSINT - breaches, disposable, social media, intelligence"
     
     @property
     def domain(self) -> str:
@@ -111,6 +115,9 @@ class EmailDomain(BaseModule):
             tasks.append(self._run_provider(provider, result))
         
         await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Gather additional intelligence
+        await self._gather_intelligence(email, result)
         
         return result
     
@@ -175,6 +182,13 @@ class EmailDomain(BaseModule):
         
         return result
     
+    async def scan_intelligence(self, email: str) -> dict[str, Any]:
+        """Gather email intelligence (DNS, MX, SPF, DKIM, DMARC)."""
+        for provider in self.providers:
+            if hasattr(provider, 'get_email_intelligence'):
+                return await provider.get_email_intelligence(email, self.config)
+        return {}
+    
     def _parse_email(self, email: str) -> dict[str, Any]:
         """Parse and validate email address."""
         try:
@@ -210,6 +224,28 @@ class EmailDomain(BaseModule):
                 "is_free": False,
                 "is_disposable": False,
             }
+    
+    async def _gather_intelligence(self, email: str, result: EmailResult) -> None:
+        """Gather additional email intelligence."""
+        try:
+            # Get email intelligence
+            intelligence = await self.scan_intelligence(email)
+            
+            if intelligence:
+                # Add intelligence to result
+                if intelligence.get("mx_records"):
+                    result.mx_records = [mx.get("exchange", "") for mx in intelligence["mx_records"]]
+                
+                if intelligence.get("provider_info"):
+                    result.provider = intelligence["provider_info"].get("name", result.provider)
+                
+                # Add intelligence to modules used
+                if "email_intelligence" not in result.modules_used:
+                    result.modules_used.append("email_intelligence")
+        
+        except Exception as e:
+            logger.error(f"Failed to gather intelligence: {e}")
+            result.errors.append(f"Intelligence gathering failed: {str(e)}")
     
     async def _run_provider(self, provider: Any, result: EmailResult) -> None:
         """Run a single provider and update result."""
