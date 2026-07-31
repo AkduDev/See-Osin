@@ -13,7 +13,7 @@ from see import __version__
 from see.core.aggregator import ModuleAggregator, OSINTResult
 from see.core.parser import parse_phone_number
 from see.core.schemas import DEFAULT_MODULES, OWNER_MODULES
-from see.logo import COMPACT_GLASSES
+from see.logo import LOGO
 from see.output.json_formatter import JSONFormatter
 from see.output.rich_display import RichDisplay
 from see.utils.config import load_config
@@ -30,15 +30,15 @@ console = Console()
 
 def _show_logo() -> None:
     """Display the See logo in terminal."""
-    console.print(COMPACT_GLASSES, style="bold cyan")
-    console.print(f"  Phone Number OSINT Tool v{__version__}\n", style="dim")
+    console.print(LOGO, style="bold cyan")
+    console.print("  Phone Number OSINT Tool v0.1.0\n", style="dim")
 
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
     """Phone Number OSINT Tool - Get carrier, location, social media and more."""
-    _show_logo()
     if ctx.invoked_subcommand is None:
+        _show_logo()
         raise typer.Exit()
 
 
