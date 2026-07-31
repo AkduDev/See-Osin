@@ -7,11 +7,13 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from rich.console import Console
 
 from see import __version__
 from see.core.aggregator import ModuleAggregator, OSINTResult
 from see.core.parser import parse_phone_number
 from see.core.schemas import DEFAULT_MODULES, OWNER_MODULES
+from see.logo import COMPACT_GLASSES
 from see.output.json_formatter import JSONFormatter
 from see.output.rich_display import RichDisplay
 from see.utils.config import load_config
@@ -20,8 +22,24 @@ from see.utils.tor_client import TorManager
 app = typer.Typer(
     name="see",
     help="Phone Number OSINT Tool - Get carrier, location, and more",
-    no_args_is_help=True,
+    no_args_is_help=False,
 )
+
+console = Console()
+
+
+def _show_logo() -> None:
+    """Display the See logo in terminal."""
+    console.print(COMPACT_GLASSES, style="bold cyan")
+    console.print(f"  Phone Number OSINT Tool v{__version__}\n", style="dim")
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """Phone Number OSINT Tool - Get carrier, location, social media and more."""
+    _show_logo()
+    if ctx.invoked_subcommand is None:
+        raise typer.Exit()
 
 
 async def _run_scan(
@@ -148,7 +166,7 @@ def config_cmd(
 @app.command()
 def version() -> None:
     """Show version information."""
-    typer.echo(f"See OSINT Tool v{__version__}")
+    pass
 
 
 @app.command()
