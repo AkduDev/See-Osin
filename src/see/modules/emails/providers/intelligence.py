@@ -52,13 +52,17 @@ class EmailIntelligenceProvider(BaseEmailProvider):
             "domain": domain,
             "mx_records": [],
             "spf_record": None,
+            "spf_valid": False,
             "dkim_record": None,
+            "dkim_valid": False,
             "dmarc_record": None,
+            "dmarc_valid": False,
             "a_records": [],
             "txt_records": [],
             "whois_info": None,
             "email_age": None,
             "provider_info": None,
+            "security_score": 0,
         }
         
         # Get MX records
@@ -66,9 +70,15 @@ class EmailIntelligenceProvider(BaseEmailProvider):
         
         # Get SPF record
         intelligence["spf_record"] = await self._get_spf_record(domain)
+        intelligence["spf_valid"] = bool(intelligence["spf_record"])
         
         # Get DMARC record
         intelligence["dmarc_record"] = await self._get_dmarc_record(domain)
+        intelligence["dmarc_valid"] = bool(intelligence["dmarc_record"])
+        
+        # Get DKIM record (try common selectors)
+        intelligence["dkim_record"] = await self._get_dkim_record(domain)
+        intelligence["dkim_valid"] = bool(intelligence["dkim_record"])
         
         # Get A records
         intelligence["a_records"] = await self._get_a_records(domain)
@@ -78,6 +88,9 @@ class EmailIntelligenceProvider(BaseEmailProvider):
         
         # Identify email provider
         intelligence["provider_info"] = await self._identify_provider(domain, intelligence["mx_records"])
+        
+        # Calculate security score
+        intelligence["security_score"] = self._calculate_security_score(intelligence)
         
         return intelligence
     
@@ -128,6 +141,29 @@ class EmailIntelligenceProvider(BaseEmailProvider):
         except Exception as e:
             logger.debug(f"DMARC lookup failed for {domain}: {e}")
             return None
+    
+    async def _get_dkim_record(self, domain: str) -> str | None:
+        """Get DKIM record for domain (try common selectors)."""
+        common_selectors = [
+            'default', 'google', 'selector1', 'selector2',
+            'k1', 'mandrill', 'everlytickey1', 'dkim',
+            'mail', 'smtp', 's1', 's2',
+        ]
+        
+        for selector in common_selectors:
+            try:
+                dkim_domain = f"{selector}._domainkey.{domain}"
+                answers = dns.resolver.resolve(dkim_domain, 'TXT')
+                
+                for rdata in answers:
+                    txt = str(rdata).strip('"')
+                    if 'v=DKIM1' in txt or 'k=rsa' in txt:
+                        return txt
+                
+            except Exception:
+                continue
+        
+        return None
     
     async def _get_a_records(self, domain: str) -> list[str]:
         """Get A records for domain."""
@@ -188,3 +224,25 @@ class EmailIntelligenceProvider(BaseEmailProvider):
             return {"name": domain.split('.')[0].title(), "type": "free"}
         
         return {"name": "Unknown", "type": "unknown"}
+    
+    def _calculate_security_score(self, intelligence: dict[str, Any]) -> int:
+        """Calculate email security score (0-100)."""
+        score = 0
+        
+        # MX records (30 points)
+        if intelligence.get("mx_records"):
+            score += 30
+        
+        # SPF record (25 points)
+        if intelligence.get("spf_valid"):
+            score += 25
+        
+        # DMARC record (25 points)
+        if intelligence.get("dmarc_valid"):
+            score += 25
+        
+        # DKIM record (20 points)
+        if intelligence.get("dkim_valid"):
+            score += 20
+        
+        return min(score, 100)

@@ -7,6 +7,8 @@ from see.modules.emails.providers.intelligence import EmailIntelligenceProvider
 from see.modules.emails.providers.reverse import ReverseEmailProvider
 from see.modules.emails.providers.hunter import HunterProvider
 from see.modules.emails.providers.dehashed import DeHashedProvider
+from see.modules.emails.providers.smtp import SMTPProvider
+from see.modules.emails.providers.gravatar import GravatarProvider
 
 __all__ = [
     "HoleheProvider",
@@ -16,4 +18,6 @@ __all__ = [
     "ReverseEmailProvider",
     "HunterProvider",
     "DeHashedProvider",
+    "SMTPProvider",
+    "GravatarProvider",
 ]

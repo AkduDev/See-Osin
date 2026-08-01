@@ -16,6 +16,8 @@ from see.modules.emails.providers import (
     ReverseEmailProvider,
     HunterProvider,
     DeHashedProvider,
+    SMTPProvider,
+    GravatarProvider,
 )
 from see.utils.config import AppConfig, load_config
 from see.utils.logger import get_logger
@@ -60,6 +62,8 @@ class EmailDomain(BaseModule):
             ReverseEmailProvider(),
             HunterProvider(),
             DeHashedProvider(),
+            SMTPProvider(),
+            GravatarProvider(),
         ]
         
         # Filter to only available providers
