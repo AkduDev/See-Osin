@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "see-osint"
-version = "0.1.0"
-description = "Phone number OSINT tool - Get carrier, location, social media and breach data"
+version = "0.2.0"
+description = "Modular OSINT framework for phone number and email intelligence with Tor support"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
-    { name = "See" },
+    { name = "AkduDev", email = "akdulayr@gmail.com" },
 ]
-keywords = ["osint", "phone", "security", "reconnaissance", "phoneint"]
+keywords = ["osint", "phone", "email", "security", "reconnaissance", "intelligence"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Information Technology",
@@ -33,6 +33,7 @@ dependencies = [
     "pydantic>=2.0",
     "pyyaml>=6.0",
     "dnspython>=2.4.0",
+    "holehe>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -51,7 +52,9 @@ dev = [
 see = "see.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/see-osint/see"
+Homepage = "https://github.com/AkduDev/See-Osin"
+Repository = "https://github.com/AkduDev/See-Osin"
+Issues = "https://github.com/AkduDev/See-Osin/issues"
 
 [tool.hatch.version]
 path = "src/see/__init__.py"

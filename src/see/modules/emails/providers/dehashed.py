@@ -52,12 +52,17 @@ class DeHashedProvider(BaseEmailProvider):
         config = load_config()
         return bool(config.api_keys.dehashed)
     
-    async def get_breach_data(self, email: str, config: AppConfig) -> dict[str, Any] | None:
+    async def get_breach_data(self, email: str, config: AppConfig, include_passwords: bool = False) -> dict[str, Any] | None:
         """
         Get breach data from DeHashed.
         
+        Args:
+            email: Email address to search
+            config: Application config
+            include_passwords: Whether to include passwords in output (default: False for security)
+        
         Returns:
-            Dictionary with breaches, phone numbers, addresses, passwords
+            Dictionary with breaches, phone numbers, addresses, usernames
         """
         api_key = config.api_keys.dehashed
         
@@ -114,10 +119,12 @@ class DeHashedProvider(BaseEmailProvider):
                         "name": entry.get("database_name", ""),
                         "date": entry.get("breach_date", ""),
                         "records": entry.get("records_in_database", ""),
-                        "password": entry.get("password", ""),
-                        "hash": entry.get("hashed_password", ""),
-                        "salt": entry.get("salt", ""),
                     }
+                    # Only include password info if explicitly requested
+                    if include_passwords:
+                        breach["password"] = entry.get("password", "")
+                        breach["hash"] = entry.get("hashed_password", "")
+                        breach["salt"] = entry.get("salt", "")
                     aggregated["breaches"].append(breach)
                     
                     if entry.get("database_name") not in aggregated["sources"]:
@@ -134,8 +141,8 @@ class DeHashedProvider(BaseEmailProvider):
                     if address not in aggregated["addresses"]:
                         aggregated["addresses"].append(address)
                 
-                # Passwords
-                if entry.get("password"):
+                # Passwords (only if explicitly requested)
+                if include_passwords and entry.get("password"):
                     password_info = {
                         "password": entry["password"],
                         "hash": entry.get("hashed_password", ""),

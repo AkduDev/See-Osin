@@ -1,27 +1,37 @@
-# See - Phone Number OSINT Tool
+# See-OSIN
 
-A powerful Python CLI tool for phone number investigation using online APIs with Tor support for anonymity.
+Modular OSINT framework for phone number and email intelligence with Tor support.
 
 ## Features
 
+### Phone Intelligence
 - Phone number validation and parsing
-- Carrier detection
+- Carrier detection (phonenumbers, NumVerify, NumLookup)
+- Owner lookup (Abstract API)
 - Country and timezone lookup
 - Line type identification (mobile, fixed-line, VoIP, etc.)
-- Owner lookup (with API keys)
-- Social media profile detection
-- Google dorks for OSINT
+
+### Email Intelligence
+- Breach data (Holehe, DeHashed)
+- Disposable email detection
+- Social media profiles (26+ platforms)
+- DNS analysis (MX, SPF, DKIM, DMARC)
+- SMTP verification
+- Gravatar lookup
+
+### Security Features
 - **Tor proxy support** for anonymous requests
 - **Automatic circuit rotation**
-- JSON output for pipeline integration
-- Rich terminal display
+- **API keys via environment variables** (never in config files)
+- **Non-blocking DNS** with asyncio
+- **Rate limiting** for API calls
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd see
+git clone https://github.com/AkduDev/See-Osin.git
+cd See-Osin
 
 # Create virtual environment
 python3 -m venv .venv
@@ -34,157 +44,104 @@ pip install -e .
 pip install -e ".[tor]"
 ```
 
-### System Requirements for Tor
-
-```bash
-# Debian/Ubuntu
-sudo apt install tor
-
-# macOS
-brew install tor
-
-# Start Tor service
-sudo systemctl start tor
-# or
-brew services start tor
-```
-
 ## Quick Start
 
 ```bash
-# Scan a phone number
-see scan +34612345678
+# Phone number scan
+see phone-scan +34612345678
 
-# Find owner information
-see owner +34612345678
+# Email scan
+see email-scan user@example.com
 
-# Validate a phone number
-see validate +34612345678
+# Validate phone number
+see phone-validate +34612345678
 
-# Get carrier information
-see carrier +34612345678
+# Get carrier info
+see phone-carrier +34612345678
 
-# Check Tor status
-see tor-status
-```
+# Check breaches
+see email-breaches user@example.com
 
-## Anonymous Usage with Tor
-
-```bash
-# Single request through Tor
-see owner +34612345678 --tor
-
-# Scan through Tor
-see scan +34612345678 --tor
-
-# Force direct connection (ignore config)
-see owner +34612345678 --no-tor
-```
-
-### Tor Configuration (config.yaml)
-
-```yaml
-tor:
-  enabled: false              # Enable by default
-  socks_port: 9050            # Tor SOCKS port
-  control_port: 9051          # For circuit rotation
-  max_requests_per_circuit: 10  # Rotate every N requests
-  auto_rotate: true           # Auto-rotate when max reached
-  exit_countries: []          # Empty = random, or ["us", "de"]
-```
-
-### Environment Variables
-
-```bash
-export SEE_TOR_ENABLED=true
-export SEE_NUMVERIFY_KEY=your_key
-export SEE_ABSTRACT_KEY=your_key
+# Check disposable
+see email-disposable user@example.com
 ```
 
 ## Configuration
 
-### API Keys
-
-For enhanced data (owner name, location), configure API keys:
+### Environment Variables (Recommended)
 
 ```bash
-# Set NumVerify API key
-see config --set numverify=YOUR_API_KEY
+# Create .env file
+cp .env.example .env
 
-# Set Abstract API key
-see config --set abstract=YOUR_API_KEY
+# Add your API keys
+NUMVERIFY_API_KEY=your_key
+ABSTRACT_API_KEY=your_key
+HUNTER_API_KEY=your_key
+DEHASHED_API_KEY=your_key
 ```
 
 ### Get Free API Keys
 
 - **NumVerify**: https://numverify.com (100 requests/month free)
 - **Abstract**: https://abstractapi.com (100 requests/month free)
+- **Hunter.io**: https://hunter.io (25 searches/month free)
+- **DeHashed**: https://dehashed.com (paid)
 
 ## Commands
 
 | Command | Description | Tor Support |
 |---------|-------------|-------------|
-| `see scan <phone>` | Full OSINT scan | ✓ |
-| `see owner <phone>` | Find owner info | ✓ |
-| `see validate <phone>` | Validate phone format | - |
-| `see carrier <phone>` | Get carrier info | ✓ |
-| `see tor-status` | Check Tor connection | - |
-| `see config --show` | Show configuration | - |
+| `see phone-scan <phone>` | Full phone OSINT scan | ✓ |
+| `see phone-carrier <phone>` | Get carrier info | ✓ |
+| `see phone-owner <phone>` | Find owner info | ✓ |
+| `see phone-validate <phone>` | Validate phone format | - |
+| `see email-scan <email>` | Full email OSINT scan | ✓ |
+| `see email-breaches <email>` | Check breaches | ✓ |
+| `see email-social <email>` | Find social profiles | ✓ |
+| `see email-disposable <email>` | Check if disposable | - |
+| `see scan <target>` | Legacy full scan | ✓ |
 | `see version` | Show version | - |
 
 ## Output Formats
 
 ```bash
 # JSON output
-see scan +34612345678 --format json
+see phone-scan +34612345678 --format json
 
 # Display output (default)
-see scan +34612345678 --format display
-
-# Both JSON and display
-see scan +34612345678 --format both
+see phone-scan +34612345678 --format display
 
 # Save to file
-see scan +34612345678 --output results.json
+see phone-scan +34612345678 --output results.json
 ```
 
-## Project Structure
+## Tor Usage
 
-```
-see/
-├── src/see/
-│   ├── cli.py                 # CLI entry point
-│   ├── core/
-│   │   ├── parser.py          # Phone number parsing
-│   │   └── aggregator.py      # Module orchestration
-│   ├── modules/
-│   │   ├── base.py            # Module interface
-│   │   ├── phonenumbers_mod.py # Offline lookup
-│   │   ├── numverify_mod.py   # NumVerify API
-│   │   ├── abstract_mod.py    # Abstract Person API
-│   │   ├── maigret_mod.py     # Social media OSINT
-│   │   └── google_dorks_mod.py # Search engine dorks
-│   ├── output/
-│   │   ├── json_formatter.py  # JSON output
-│   │   └── rich_display.py    # Terminal display
-│   └── utils/
-│       ├── config.py          # Configuration
-│       ├── http_client.py     # HTTP client with Tor
-│       ├── logger.py          # Logging
-│       └── tor_client.py      # Tor client & rotation
-├── tests/
-├── pyproject.toml
-└── config.example.yaml
+```bash
+# Single request through Tor
+see phone-scan +34612345678 --tor
+
+# Force direct connection
+see phone-scan +34612345678 --no-tor
 ```
 
-## Security Features
+## Architecture
 
-- **Tor Integration**: All requests can be routed through Tor
-- **Circuit Rotation**: Automatic IP rotation every N requests
-- **Rate Limiting**: Built-in rate limiting for API calls
-- **Input Validation**: Phone number validation before processing
-- **No Data Storage**: Results not stored unless explicitly saved
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed project structure.
+
+## Security
+
+- API keys stored in environment variables (never committed)
+- Passwords excluded from DeHashed output by default
+- All HTTP requests support Tor routing
+- Non-blocking DNS resolution
+- Input validation on all user inputs
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) for details.
