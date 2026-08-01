@@ -40,6 +40,7 @@ class SMTPProvider(BaseEmailProvider):
     def supports_disposable(self) -> bool:
         return True
     
+    @property
     def is_available(self) -> bool:
         """Check if provider is available."""
         return True
@@ -88,13 +89,14 @@ class SMTPProvider(BaseEmailProvider):
         try:
             import dns.resolver
             
-            mx_records = []
-            answers = dns.resolver.resolve(domain, 'MX')
+            def resolve_mx():
+                mx_records = []
+                answers = dns.resolver.resolve(domain, 'MX')
+                for rdata in sorted(answers, key=lambda x: x.preference):
+                    mx_records.append(str(rdata.exchange).rstrip('.'))
+                return mx_records
             
-            for rdata in sorted(answers, key=lambda x: x.preference):
-                mx_records.append(str(rdata.exchange).rstrip('.'))
-            
-            return mx_records
+            return await asyncio.to_thread(resolve_mx)
         except Exception as e:
             logger.debug(f"MX lookup failed for {domain}: {e}")
             return []

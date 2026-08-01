@@ -43,7 +43,7 @@ class PhoneDomain(BaseModule):
         ]
         
         # Filter to only available providers
-        available = [p for p in providers if p.is_available()]
+        available = [p for p in providers if p.is_available]
         logger.info(f"Loaded {len(available)} phone providers: {[p.name for p in available]}")
         
         return available
@@ -60,6 +60,7 @@ class PhoneDomain(BaseModule):
     def domain(self) -> str:
         return "phones"
     
+    @property
     def is_available(self) -> bool:
         """Check if at least one provider is available."""
         return len(self.providers) > 0

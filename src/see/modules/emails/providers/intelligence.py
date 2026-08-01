@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import dns.resolver
 import dns.reversename
 from typing import Any
@@ -35,6 +36,7 @@ class EmailIntelligenceProvider(BaseEmailProvider):
     def requires_api_key(self) -> bool:
         return False
     
+    @property
     def is_available(self) -> bool:
         """Check if provider is available."""
         return True
@@ -97,16 +99,17 @@ class EmailIntelligenceProvider(BaseEmailProvider):
     async def _get_mx_records(self, domain: str) -> list[dict[str, Any]]:
         """Get MX records for domain."""
         try:
-            mx_records = []
-            answers = dns.resolver.resolve(domain, 'MX')
+            def resolve_mx():
+                mx_records = []
+                answers = dns.resolver.resolve(domain, 'MX')
+                for rdata in sorted(answers, key=lambda x: x.preference):
+                    mx_records.append({
+                        "priority": rdata.preference,
+                        "exchange": str(rdata.exchange).rstrip('.'),
+                    })
+                return mx_records
             
-            for rdata in sorted(answers, key=lambda x: x.preference):
-                mx_records.append({
-                    "priority": rdata.preference,
-                    "exchange": str(rdata.exchange).rstrip('.'),
-                })
-            
-            return mx_records
+            return await asyncio.to_thread(resolve_mx)
         except Exception as e:
             logger.debug(f"MX lookup failed for {domain}: {e}")
             return []
@@ -114,14 +117,15 @@ class EmailIntelligenceProvider(BaseEmailProvider):
     async def _get_spf_record(self, domain: str) -> str | None:
         """Get SPF record for domain."""
         try:
-            answers = dns.resolver.resolve(domain, 'TXT')
+            def resolve_spf():
+                answers = dns.resolver.resolve(domain, 'TXT')
+                for rdata in answers:
+                    txt = str(rdata).strip('"')
+                    if txt.startswith('v=spf1'):
+                        return txt
+                return None
             
-            for rdata in answers:
-                txt = str(rdata).strip('"')
-                if txt.startswith('v=spf1'):
-                    return txt
-            
-            return None
+            return await asyncio.to_thread(resolve_spf)
         except Exception as e:
             logger.debug(f"SPF lookup failed for {domain}: {e}")
             return None
@@ -129,15 +133,16 @@ class EmailIntelligenceProvider(BaseEmailProvider):
     async def _get_dmarc_record(self, domain: str) -> str | None:
         """Get DMARC record for domain."""
         try:
-            dmarc_domain = f"_dmarc.{domain}"
-            answers = dns.resolver.resolve(dmarc_domain, 'TXT')
+            def resolve_dmarc():
+                dmarc_domain = f"_dmarc.{domain}"
+                answers = dns.resolver.resolve(dmarc_domain, 'TXT')
+                for rdata in answers:
+                    txt = str(rdata).strip('"')
+                    if txt.startswith('v=DMARC1'):
+                        return txt
+                return None
             
-            for rdata in answers:
-                txt = str(rdata).strip('"')
-                if txt.startswith('v=DMARC1'):
-                    return txt
-            
-            return None
+            return await asyncio.to_thread(resolve_dmarc)
         except Exception as e:
             logger.debug(f"DMARC lookup failed for {domain}: {e}")
             return None
@@ -150,31 +155,32 @@ class EmailIntelligenceProvider(BaseEmailProvider):
             'mail', 'smtp', 's1', 's2',
         ]
         
-        for selector in common_selectors:
-            try:
-                dkim_domain = f"{selector}._domainkey.{domain}"
-                answers = dns.resolver.resolve(dkim_domain, 'TXT')
-                
-                for rdata in answers:
-                    txt = str(rdata).strip('"')
-                    if 'v=DKIM1' in txt or 'k=rsa' in txt:
-                        return txt
-                
-            except Exception:
-                continue
+        def resolve_dkim():
+            for selector in common_selectors:
+                try:
+                    dkim_domain = f"{selector}._domainkey.{domain}"
+                    answers = dns.resolver.resolve(dkim_domain, 'TXT')
+                    for rdata in answers:
+                        txt = str(rdata).strip('"')
+                        if 'v=DKIM1' in txt or 'k=rsa' in txt:
+                            return txt
+                except Exception:
+                    continue
+            return None
         
-        return None
+        return await asyncio.to_thread(resolve_dkim)
     
     async def _get_a_records(self, domain: str) -> list[str]:
         """Get A records for domain."""
         try:
-            records = []
-            answers = dns.resolver.resolve(domain, 'A')
+            def resolve_a():
+                records = []
+                answers = dns.resolver.resolve(domain, 'A')
+                for rdata in answers:
+                    records.append(str(rdata))
+                return records
             
-            for rdata in answers:
-                records.append(str(rdata))
-            
-            return records
+            return await asyncio.to_thread(resolve_a)
         except Exception as e:
             logger.debug(f"A record lookup failed for {domain}: {e}")
             return []
@@ -182,13 +188,14 @@ class EmailIntelligenceProvider(BaseEmailProvider):
     async def _get_txt_records(self, domain: str) -> list[str]:
         """Get all TXT records for domain."""
         try:
-            records = []
-            answers = dns.resolver.resolve(domain, 'TXT')
+            def resolve_txt():
+                records = []
+                answers = dns.resolver.resolve(domain, 'TXT')
+                for rdata in answers:
+                    records.append(str(rdata).strip('"'))
+                return records
             
-            for rdata in answers:
-                records.append(str(rdata).strip('"'))
-            
-            return records
+            return await asyncio.to_thread(resolve_txt)
         except Exception as e:
             logger.debug(f"TXT lookup failed for {domain}: {e}")
             return []

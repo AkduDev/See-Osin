@@ -2,32 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 import dns.resolver
 from typing import Any
 
 from see.modules.emails.providers.base import BaseEmailProvider
 from see.core.types import DisposableResult
+from see.core.constants import DISPOSABLE_DOMAINS, WEBMAIL_DOMAINS
 from see.utils.config import AppConfig
 from see.utils.logger import get_logger
 
 logger = get_logger("disposable_provider")
-
-# Known disposable email domains
-DISPOSABLE_DOMAINS = {
-    "tempmail.com", "throwaway.email", "temp-mail.org", "guerrillamail.com",
-    "mailinator.com", "yopmail.com", "trashmail.com", "fakeinbox.com",
-    "sharklasers.com", "guerrillamailblock.com", "grr.la", "dispostable.com",
-    "maildrop.cc", "tempail.com", "tempmail.net", "temp-mail.io",
-    "10minutemail.com", "mailnesia.com", "tempail.net", "temp-mail.com",
-    "throwaway.email", "burnermail.io", "harakirimail.com", "mohmal.com",
-}
-
-# Known webmail providers
-WEBMAIL_DOMAINS = {
-    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
-    "aol.com", "icloud.com", "mail.com", "protonmail.com", "proton.me",
-    "zoho.com", "yandex.com", "gmx.com", "fastmail.com", "tutanota.com",
-}
 
 
 class DisposableProvider(BaseEmailProvider):
@@ -54,6 +39,7 @@ class DisposableProvider(BaseEmailProvider):
     def supports_disposable(self) -> bool:
         return True
     
+    @property
     def is_available(self) -> bool:
         """Check if provider is available."""
         return True
@@ -73,10 +59,12 @@ class DisposableProvider(BaseEmailProvider):
         # Check if domain is webmail
         is_webmail = domain in WEBMAIL_DOMAINS
         
-        # Check MX records
+        # Check MX records (run in thread to avoid blocking)
         mx_found = False
         try:
-            mx_records = dns.resolver.resolve(domain, 'MX')
+            def check_mx():
+                return dns.resolver.resolve(domain, 'MX')
+            mx_records = await asyncio.to_thread(check_mx)
             mx_found = len(mx_records) > 0
         except Exception as e:
             logger.debug(f"MX lookup failed for {domain}: {e}")

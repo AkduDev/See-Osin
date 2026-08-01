@@ -10,7 +10,7 @@ from see.utils.logger import get_logger
 
 logger = get_logger("numverify_provider")
 
-NUMVERIFY_BASE_URL = "http://apilayer.net/api/validate"
+NUMVERIFY_BASE_URL = "https://apilayer.net/api/validate"
 
 
 class NumVerifyProvider(BasePhoneProvider):
@@ -37,6 +37,7 @@ class NumVerifyProvider(BasePhoneProvider):
     def supports_carrier(self) -> bool:
         return True
     
+    @property
     def is_available(self) -> bool:
         """Check if API key is configured."""
         from see.utils.config import load_config

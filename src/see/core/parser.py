@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import phonenumbers
 from phonenumbers import PhoneNumberFormat
 
-from see.core.schemas import get_phone_type_name
+from see.core.constants import get_phone_type_name
 from see.utils.logger import get_logger
 
 logger = get_logger("parser")

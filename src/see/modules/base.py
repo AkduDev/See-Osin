@@ -38,6 +38,7 @@ class BaseModule(ABC):
         """Domain this module handles (phones, emails, etc)."""
         ...
     
+    @property
     @abstractmethod
     def is_available(self) -> bool:
         """Check if module is available."""
@@ -90,6 +91,7 @@ class BaseProvider(ABC):
         """Whether this provider supports social media lookup."""
         return False
     
+    @property
     @abstractmethod
     def is_available(self) -> bool:
         """Check if provider is available (API key configured, etc)."""

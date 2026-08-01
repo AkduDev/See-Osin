@@ -41,6 +41,7 @@ class AbstractProvider(BasePhoneProvider):
     def supports_owner(self) -> bool:
         return True
     
+    @property
     def is_available(self) -> bool:
         """Check if API key is configured."""
         from see.utils.config import load_config

@@ -38,6 +38,7 @@ class HoleheProvider(BaseEmailProvider):
     def supports_breaches(self) -> bool:
         return True
     
+    @property
     def is_available(self) -> bool:
         """Check if provider is available."""
         return True

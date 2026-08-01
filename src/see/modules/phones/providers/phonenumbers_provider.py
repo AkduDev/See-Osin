@@ -38,6 +38,7 @@ class PhonenumbersProvider(BasePhoneProvider):
     def supports_carrier(self) -> bool:
         return True
     
+    @property
     def is_available(self) -> bool:
         """Always available (local library)."""
         return True
