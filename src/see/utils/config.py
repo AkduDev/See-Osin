@@ -15,6 +15,8 @@ class APIKeys(BaseModel):
     abstract: str = ""
     opencellid: str = ""
     numlookup: str = ""
+    hunter: str = ""
+    dehashed: str = ""
 
 
 class TorConfig(BaseModel):
@@ -107,5 +109,19 @@ def load_config(config_path: Optional[Path] = None) -> AppConfig:
         if "tor" not in config_data:
             config_data["tor"] = {}
         config_data["tor"]["enabled"] = tor_enabled.lower() in ("true", "1", "yes")
+
+    # Hunter API key
+    env_key = os.environ.get("SEE_HUNTER_KEY")
+    if env_key:
+        if "api_keys" not in config_data:
+            config_data["api_keys"] = {}
+        config_data["api_keys"]["hunter"] = env_key
+
+    # DeHashed API key
+    env_key = os.environ.get("SEE_DEHASHED_KEY")
+    if env_key:
+        if "api_keys" not in config_data:
+            config_data["api_keys"] = {}
+        config_data["api_keys"]["dehashed"] = env_key
 
     return AppConfig(**config_data)

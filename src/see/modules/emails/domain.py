@@ -14,6 +14,8 @@ from see.modules.emails.providers import (
     SocialEmailProvider,
     EmailIntelligenceProvider,
     ReverseEmailProvider,
+    HunterProvider,
+    DeHashedProvider,
 )
 from see.utils.config import AppConfig, load_config
 from see.utils.logger import get_logger
@@ -56,6 +58,8 @@ class EmailDomain(BaseModule):
             SocialEmailProvider(),
             EmailIntelligenceProvider(),
             ReverseEmailProvider(),
+            HunterProvider(),
+            DeHashedProvider(),
         ]
         
         # Filter to only available providers
@@ -252,30 +256,88 @@ class EmailDomain(BaseModule):
         try:
             logger.info(f"Running provider: {provider.name}")
             
-            # Get breaches
-            if provider.supports_breaches:
-                breaches = await provider.get_breaches(result.input_email, self.config)
-                if breaches and not result.breaches:
-                    result.breaches = breaches
-                    result.modules_used.append(provider.name)
-            
-            # Check disposable
-            if provider.supports_disposable:
-                disposable = await provider.check_disposable(result.input_email, self.config)
-                if disposable:
-                    result.disposable = disposable
-                    result.is_disposable = disposable.is_disposable
-                    result.is_webmail = disposable.is_webmail
+            # Hunter.io - Get email info
+            if provider.name == "hunter":
+                info = await provider.get_email_info(result.input_email, self.config)
+                if info:
+                    if info.get("name"):
+                        result.name = info["name"]
+                    if info.get("phone"):
+                        result.phone_numbers.append(info["phone"])
+                    if info.get("company"):
+                        result.company = info["company"]
+                    if info.get("job_title"):
+                        result.job_title = info["job_title"]
+                    if info.get("linkedin"):
+                        result.linkedin = info["linkedin"]
+                    if info.get("location"):
+                        result.location = info["location"]
+                    
+                    # Get social profiles
+                    social = await provider.get_social_profiles(result.input_email, self.config)
+                    if social:
+                        result.social_profiles.extend(social)
+                    
                     if provider.name not in result.modules_used:
                         result.modules_used.append(provider.name)
             
-            # Get social profiles
-            if provider.supports_social:
-                social = await provider.get_social_profiles(result.input_email, self.config)
-                if social:
-                    result.social_profiles.extend(social)
+            # DeHashed - Get breach data
+            elif provider.name == "dehashed":
+                data = await provider.get_breach_data(result.input_email, self.config)
+                if data:
+                    # Breaches
+                    if data.get("breaches"):
+                        from see.core.types import BreachResult
+                        result.breaches = BreachResult(
+                            source="dehashed",
+                            email=result.input_email,
+                            breaches=data["breaches"],
+                            total_breaches=len(data["breaches"]),
+                            sources=data.get("sources", []),
+                        )
+                    
+                    # Phone numbers
+                    if data.get("phone_numbers"):
+                        result.phone_numbers.extend(data["phone_numbers"])
+                    
+                    # Names
+                    if data.get("names") and not result.name:
+                        result.name = data["names"][0]
+                    
+                    # Social profiles
+                    social = await provider.get_social_profiles(result.input_email, self.config)
+                    if social:
+                        result.social_profiles.extend(social)
+                    
                     if provider.name not in result.modules_used:
                         result.modules_used.append(provider.name)
+            
+            # Other providers
+            else:
+                # Get breaches
+                if provider.supports_breaches:
+                    breaches = await provider.get_breaches(result.input_email, self.config)
+                    if breaches and not result.breaches:
+                        result.breaches = breaches
+                        result.modules_used.append(provider.name)
+                
+                # Check disposable
+                if provider.supports_disposable:
+                    disposable = await provider.check_disposable(result.input_email, self.config)
+                    if disposable:
+                        result.disposable = disposable
+                        result.is_disposable = disposable.is_disposable
+                        result.is_webmail = disposable.is_webmail
+                        if provider.name not in result.modules_used:
+                            result.modules_used.append(provider.name)
+                
+                # Get social profiles
+                if provider.supports_social:
+                    social = await provider.get_social_profiles(result.input_email, self.config)
+                    if social:
+                        result.social_profiles.extend(social)
+                        if provider.name not in result.modules_used:
+                            result.modules_used.append(provider.name)
             
             logger.info(f"Provider {provider.name} completed")
             

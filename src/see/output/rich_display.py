@@ -120,6 +120,35 @@ class RichDisplay:
         webmail_icon = "[green]✓ Yes[/green]" if result.is_webmail else "[red]✗ No[/red]"
         table.add_row("Webmail", webmail_icon)
 
+        # Personal info
+        if result.name or result.phone_numbers or result.location:
+            table.add_row("", "")
+            table.add_row("[bold]PERSONAL[/bold]", "")
+            
+            if result.name:
+                table.add_row("Name", f"[green]{result.name}[/green]")
+            
+            if result.phone_numbers:
+                for phone in result.phone_numbers[:3]:  # Show first 3
+                    table.add_row("Phone", f"[cyan]{phone}[/cyan]")
+            
+            if result.location:
+                table.add_row("Location", result.location)
+
+        # Work info
+        if result.company or result.job_title or result.linkedin:
+            table.add_row("", "")
+            table.add_row("[bold]WORK[/bold]", "")
+            
+            if result.company:
+                table.add_row("Company", result.company)
+            
+            if result.job_title:
+                table.add_row("Job Title", result.job_title)
+            
+            if result.linkedin:
+                table.add_row("LinkedIn", f"[link={result.linkedin}]{result.linkedin}[/link]")
+
         # MX Records
         if result.mx_records:
             table.add_row("", "")
@@ -130,14 +159,16 @@ class RichDisplay:
         # Breaches
         if result.breaches and result.breaches.total_breaches > 0:
             table.add_row("", "")
-            table.add_row("Breaches", f"[red]{result.breaches.total_breaches} found[/red]")
+            table.add_row("[bold]BREACHES[/bold]", f"[red]{result.breaches.total_breaches} found[/red]")
             for breach in result.breaches.breaches[:5]:  # Show first 5
-                table.add_row("  →", breach.get("name", "Unknown"))
+                name = breach.get("name", "Unknown")
+                date = breach.get("date", "")
+                table.add_row("  →", f"{name} ({date})" if date else name)
 
         # Social profiles
         if result.social_profiles:
             table.add_row("", "")
-            table.add_row("Social", f"[green]{len(result.social_profiles)} found[/green]")
+            table.add_row("[bold]SOCIAL[/bold]", f"[green]{len(result.social_profiles)} found[/green]")
             
             # Separate found and manual check profiles
             found_profiles = [p for p in result.social_profiles if p.found]

@@ -95,6 +95,16 @@ class EmailResult:
     provider: str = ""
     mx_records: list[str] = field(default_factory=list)
     
+    # Personal info
+    name: str = ""
+    phone_numbers: list[str] = field(default_factory=list)
+    location: str = ""
+    
+    # Work info
+    company: str = ""
+    job_title: str = ""
+    linkedin: str = ""
+    
     # Results from providers
     breaches: BreachResult | None = None
     disposable: DisposableResult | None = None
@@ -120,6 +130,16 @@ class EmailResult:
                 "domain": self.domain,
                 "provider": self.provider,
                 "mx_records": self.mx_records,
+            },
+            "personal": {
+                "name": self.name,
+                "phone_numbers": self.phone_numbers,
+                "location": self.location,
+            },
+            "work": {
+                "company": self.company,
+                "job_title": self.job_title,
+                "linkedin": self.linkedin,
             },
         }
         
