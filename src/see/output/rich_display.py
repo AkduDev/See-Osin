@@ -168,17 +168,36 @@ class RichDisplay:
         # Social profiles
         if result.social_profiles:
             table.add_row("", "")
-            table.add_row("[bold]SOCIAL[/bold]", f"[green]{len(result.social_profiles)} found[/green]")
+            table.add_row("[bold]SOCIAL MEDIA[/bold]", f"[green]{len(result.social_profiles)} links[/green]")
             
             # Separate found and manual check profiles
             found_profiles = [p for p in result.social_profiles if p.found]
             manual_profiles = [p for p in result.social_profiles if not p.found]
             
-            for profile in found_profiles[:5]:  # Show first 5 found
-                table.add_row("  →", f"[green]{profile.platform}[/green]: {profile.url}")
+            # Show found profiles
+            for profile in found_profiles[:10]:  # Show first 10 found
+                table.add_row("  ✓", f"[green]{profile.platform}[/green]: {profile.url}")
             
+            # Show manual check profiles - group by type
             if manual_profiles:
-                table.add_row("  ...", f"[dim]{len(manual_profiles)} more to check manually[/dim]")
+                table.add_row("", "")
+                table.add_row("[bold]INVESTIGATE[/bold]", "[dim]Click links to check[/dim]")
+                
+                # Search engines
+                search_profiles = [p for p in manual_profiles if p.platform.startswith("search_")]
+                if search_profiles:
+                    table.add_row("", "[bold]Search Engines:[/bold]")
+                    for profile in search_profiles[:4]:
+                        platform = profile.platform.replace("search_", "").title()
+                        table.add_row("  🔍", f"{platform}")
+                
+                # Social platforms
+                social_plat = [p for p in manual_profiles if p.platform.startswith("social_")]
+                if social_plat:
+                    table.add_row("", "[bold]Social Platforms:[/bold]")
+                    for profile in social_plat[:8]:
+                        platform = profile.platform.replace("social_", "").title()
+                        table.add_row("  👤", f"{platform}")
 
         # Source
         if result.modules_used:
