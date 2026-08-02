@@ -23,19 +23,25 @@ see/
 │   │   │       ├── numverify.py              # NumVerify API
 │   │   │       ├── numlookup.py              # NumLookup API
 │   │   │       └── abstract.py               # Abstract API
-│   │   └── emails/
-│   │       ├── domain.py         # EmailDomain orchestrator
+│   │   ├── emails/
+│   │   │   ├── domain.py         # EmailDomain orchestrator
+│   │   │   └── providers/
+│   │   │       ├── base.py           # BaseEmailProvider
+│   │   │       ├── holehe.py         # Holehe breach check
+│   │   │       ├── disposable.py     # Disposable email check
+│   │   │       ├── social.py         # Social media (26+ platforms)
+│   │   │       ├── intelligence.py   # DNS/MX/SPF/DKIM analysis
+│   │   │       ├── reverse.py        # Email-to-phone lookup
+│   │   │       ├── smtp.py           # SMTP verification
+│   │   │       ├── gravatar.py       # Gravatar lookup
+│   │   │       ├── hunter.py         # Hunter.io API
+│   │   │       └── dehashed.py       # DeHashed API
+│   │   └── usernames/
+│   │       ├── domain.py         # UsernameDomain orchestrator
 │   │       └── providers/
-│   │           ├── base.py           # BaseEmailProvider
-│   │           ├── holehe.py         # Holehe breach check
-│   │           ├── disposable.py     # Disposable email check
-│   │           ├── social.py         # Social media (26+ platforms)
-│   │           ├── intelligence.py   # DNS/MX/SPF/DKIM analysis
-│   │           ├── reverse.py        # Email-to-phone lookup
-│   │           ├── smtp.py           # SMTP verification
-│   │           ├── gravatar.py       # Gravatar lookup
-│   │           ├── hunter.py         # Hunter.io API
-│   │           └── dehashed.py       # DeHashed API
+│   │           ├── base.py           # BaseUsernameProvider
+│   │           ├── platforms.py      # Platform registry (58+ sites)
+│   │           └── sherlock_like.py  # Sherlock-style search (own impl)
 │   ├── output/
 │   │   ├── rich_display.py       # Terminal display
 │   │   └── json_formatter.py     # JSON output
@@ -130,6 +136,33 @@ Result Aggregation
     ↓
 Display/JSON Output
 ```
+
+## Username Module (Sherlock-style)
+
+The `usernames` domain searches a username across social platforms using
+our own implementation (no external Sherlock CLI):
+
+1. `platforms.py` holds the platform registry. Each entry defines a profile
+   URL template (`{username}`) and a detection method.
+2. `sherlock_like.py` builds each URL and issues concurrent GET requests
+   (bounded by a semaphore, rate limited, each with a hard timeout).
+3. Detection:
+   - `method == "status"`: HTTP 200 → found; 404/410/400 → not found.
+   - `method == "text"`: site always returns 200; search body for `error_text`.
+   - `method == "manual"`: unreliable site; return URL for manual review.
+   - 403/429/5xx/timeouts → reported as `error` with the reason.
+4. Each check produces a `SocialResult`; `UsernameDomain` aggregates them
+   into a `UsernameResult`.
+
+### Adding a Platform
+
+Append an entry to `PLATFORMS` in `platforms.py`:
+
+```python
+{"name": "mysite", "url": "https://mysite.com/{username}", "method": "status"}
+```
+
+The provider discovers it automatically.
 
 ## Adding a New Provider
 

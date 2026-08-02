@@ -1,6 +1,6 @@
 # See-OSIN
 
-Modular OSINT framework for phone number and email intelligence with Tor support.
+Modular OSINT framework for phone number, email and username intelligence with Tor support.
 
 ## Features
 
@@ -18,6 +18,13 @@ Modular OSINT framework for phone number and email intelligence with Tor support
 - DNS analysis (MX, SPF, DKIM, DMARC)
 - SMTP verification
 - Gravatar lookup
+
+### Username Intelligence (Sherlock-style)
+- Search a username across 58+ social platforms
+- Own implementation: HTTP status code + body text detection (no external CLI)
+- Classifies results as found / not-found / check manually / error
+- Platform registry easy to extend (`modules/usernames/providers/platforms.py`)
+- Tor support for anonymous searches
 
 ### Security Features
 - **Tor proxy support** for anonymous requests
@@ -52,6 +59,9 @@ see phone-scan +34612345678
 
 # Email scan
 see email-scan user@example.com
+
+# Username scan (Sherlock-style)
+see username-scan johndoe
 
 # Validate phone number
 see phone-validate +34612345678
@@ -100,6 +110,7 @@ DEHASHED_API_KEY=your_key
 | `see email-breaches <email>` | Check breaches | ✓ |
 | `see email-social <email>` | Find social profiles | ✓ |
 | `see email-disposable <email>` | Check if disposable | - |
+| `see username-scan <username>` | Search username across platforms | ✓ |
 | `see scan <target>` | Legacy full scan | ✓ |
 | `see version` | Show version | - |
 

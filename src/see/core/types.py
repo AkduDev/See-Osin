@@ -249,3 +249,48 @@ class PhoneResult:
             ]
         
         return result
+
+
+@dataclass
+class UsernameResult(BaseResult):
+    """Aggregated result for username OSINT (social media search)."""
+
+    input_username: str = ""
+
+    # Results
+    profiles: list[SocialResult] = field(default_factory=list)
+    platforms_checked: int = 0
+    found_count: int = 0
+    not_found_count: int = 0
+
+    # Metadata
+    modules_used: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    query_time: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        result: dict[str, Any] = {
+            "input": self.input_username,
+            "query_time": self.query_time,
+            "modules_used": self.modules_used,
+            "errors": self.errors,
+            "username": {
+                "platforms_checked": self.platforms_checked,
+                "found_count": self.found_count,
+                "not_found_count": self.not_found_count,
+            },
+            "profiles": [
+                {
+                    "platform": p.platform,
+                    "username": p.username,
+                    "name": p.name,
+                    "url": p.url,
+                    "found": p.found,
+                    "status": p.status,
+                }
+                for p in self.profiles
+            ],
+        }
+
+        return result

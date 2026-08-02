@@ -39,8 +39,13 @@ class JSONFormatter:
 
         if filename is None:
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            phone_clean = result.input_number.replace("+", "").replace(" ", "")
-            filename = f"scan_{phone_clean}_{timestamp}.json"
+            target = (
+                getattr(result, "input_username", None)
+                or getattr(result, "input_number", None)
+                or "result"
+            )
+            target_clean = str(target).replace("+", "").replace(" ", "")
+            filename = f"scan_{target_clean}_{timestamp}.json"
 
         filepath = self.output_dir / filename
         data = result.to_dict()

@@ -132,6 +132,38 @@ class HTTPClient:
             headers=headers,
         )
 
+    async def get_response(
+        self,
+        url: str,
+        params: dict | None = None,
+        headers: dict | None = None,
+        follow_redirects: bool = True,
+    ) -> httpx.Response | None:
+        """
+        Make a GET request and return the raw response.
+
+        Unlike ``get()``, this does not parse JSON nor retry on non-2xx
+        statuses. It is useful for checking whether a resource exists by
+        inspecting the status code or body text (e.g. username search).
+        """
+        if not self._client:
+            raise RuntimeError("HTTPClient not initialized. Use 'async with'.")
+
+        await self.rate_limiter.acquire()
+
+        try:
+            logger.debug(f"GET {url} (raw)")
+            response = await self._client.get(
+                url,
+                params=params,
+                headers=headers,
+                follow_redirects=follow_redirects,
+            )
+            return response
+        except httpx.RequestError as e:
+            logger.error(f"Request error for {url}: {e}")
+            return None
+
 
 class SyncHTTPClient:
     """Sync HTTP client with optional Tor support."""

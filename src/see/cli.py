@@ -214,6 +214,48 @@ async def _email_scan(
 
 
 # ============================================================================
+# Username Commands (Sherlock-style)
+# ============================================================================
+
+
+@app.command()
+def username_scan(
+    username: str = typer.Argument(help="Username to search across social platforms"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
+    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+) -> None:
+    """Search a username across social media platforms (Sherlock-style)."""
+    asyncio.run(_username_scan(username, output, format))
+
+
+async def _username_scan(
+    username: str,
+    output: Path | None,
+    format: str,
+) -> None:
+    """Common username scan implementation."""
+    from see.modules.usernames.domain import UsernameDomain
+
+    domain = UsernameDomain()
+    result = await domain.scan(username)
+
+    # Display results
+    display = RichDisplay()
+    json_fmt = JSONFormatter()
+
+    if format in ("display", "both"):
+        display.display_username(result)
+
+    if format in ("json", "both"):
+        if output:
+            filepath = json_fmt.save(result.to_dict(), output.name)
+            typer.echo(f"\nResults saved to {filepath}", err=True)
+        elif format == "json":
+            import json
+            typer.echo(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+
+
+# ============================================================================
 # Legacy Commands (for backward compatibility)
 # ============================================================================
 

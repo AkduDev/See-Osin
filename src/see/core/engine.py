@@ -39,6 +39,22 @@ class SeeEngine:
         domain = PhoneDomain(self.config)
         return await domain.scan(number, modules)
     
+    async def scan_username(self, username: str, modules: list[str] | None = None) -> Any:
+        """
+        Search a username across social media platforms.
+        
+        Args:
+            username: Username to search
+            modules: Optional list of specific providers to use
+        
+        Returns:
+            UsernameResult with found profiles
+        """
+        from see.modules.usernames.domain import UsernameDomain
+        
+        domain = UsernameDomain(self.config)
+        return await domain.scan(username, modules)
+    
     async def scan(self, target: str, domain: str = "phones", **kwargs) -> Any:
         """
         Generic scan method.

@@ -5,9 +5,11 @@ from see.core.types import (
     CarrierResult,
     OwnerResult,
     SocialResult,
+    BreachResult,
+    DisposableResult,
+    EmailResult,
     PhoneResult,
-    Module,
-    Provider,
+    UsernameResult,
 )
 from see.core.registry import ModuleRegistry, get_registry, register_module
 from see.core.engine import SeeEngine
@@ -18,9 +20,11 @@ __all__ = [
     "CarrierResult",
     "OwnerResult",
     "SocialResult",
+    "BreachResult",
+    "DisposableResult",
+    "EmailResult",
     "PhoneResult",
-    "Module",
-    "Provider",
+    "UsernameResult",
     # Registry
     "ModuleRegistry",
     "get_registry",

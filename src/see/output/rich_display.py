@@ -225,3 +225,72 @@ class RichDisplay:
         import json
         formatted = json.dumps(data, indent=2, ensure_ascii=False)
         self.console.print_json(formatted)
+
+    def display_username(self, result) -> None:
+        """
+        Display username scan result in terminal.
+
+        Args:
+            result: UsernameResult to display
+        """
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column("Key", style="cyan", width=14)
+        table.add_column("Value")
+
+        # Username
+        table.add_row("Username", result.input_username)
+        table.add_row("", "")
+
+        # Summary
+        table.add_row("Platforms", f"[cyan]{result.platforms_checked}[/cyan] checked")
+        table.add_row(
+            "Found",
+            f"[green]✓ {result.found_count}[/green] found / "
+            f"[red]✗ {result.not_found_count}[/red] not found",
+        )
+
+        # Found profiles
+        found_profiles = [p for p in result.profiles if p.found]
+        if found_profiles:
+            table.add_row("", "")
+            table.add_row("[bold]FOUND PROFILES[/bold]", f"[green]{len(found_profiles)}[/green]")
+            for profile in found_profiles[:15]:  # Show first 15
+                table.add_row("  ✓", f"[green]{profile.platform}[/green]: {profile.url}")
+
+        # Manual check profiles
+        manual_profiles = [p for p in result.profiles if p.status == "check_manually"]
+        if manual_profiles:
+            table.add_row("", "")
+            table.add_row("[bold]CHECK MANUALLY[/bold]", f"[yellow]{len(manual_profiles)}[/yellow]")
+            for profile in manual_profiles[:10]:
+                table.add_row("  🔍", f"{profile.platform}: {profile.url}")
+
+        # Errors
+        errors = [p for p in result.profiles if p.status == "error"]
+        if errors:
+            table.add_row("", "")
+            table.add_row("[bold]ERRORS[/bold]", f"[red]{len(errors)}[/red]")
+            for profile in errors[:8]:
+                reason = profile.error or "unknown"
+                table.add_row("  ⚠", f"{profile.platform} ({reason})")
+
+        # Source
+        if result.modules_used:
+            table.add_row("", "")
+            table.add_row("Source", ", ".join(result.modules_used))
+
+        # Panel errors
+        if result.errors:
+            table.add_row("", "")
+            for error in result.errors:
+                table.add_row("[red]Error[/red]", error)
+
+        # Create panel
+        panel = Panel(
+            table,
+            title=f"[bold blue]🔍 {result.input_username}[/bold blue]",
+            border_style="blue",
+            padding=(1, 2),
+        )
+
+        self.console.print(panel)
