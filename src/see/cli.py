@@ -223,21 +223,27 @@ def username_scan(
     username: str = typer.Argument(help="Username to search across social platforms"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
     format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    tor: bool = typer.Option(False, "--tor", help="Route requests through Tor"),
+    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the in-memory result cache"),
 ) -> None:
     """Search a username across social media platforms (Sherlock-style)."""
-    asyncio.run(_username_scan(username, output, format))
+    asyncio.run(_username_scan(username, output, format, tor, no_cache))
 
 
 async def _username_scan(
     username: str,
     output: Path | None,
     format: str,
+    tor: bool = False,
+    no_cache: bool = False,
 ) -> None:
     """Common username scan implementation."""
     from see.modules.usernames.domain import UsernameDomain
 
     domain = UsernameDomain()
-    result = await domain.scan(username)
+    result = await domain.scan(
+        username, use_tor=tor, use_cache=not no_cache
+    )
 
     # Display results
     display = RichDisplay()

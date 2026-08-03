@@ -139,9 +139,10 @@ class HTTPClient:
         headers: dict | None = None,
         follow_redirects: bool = True,
         read_body: bool = True,
+        method: str = "GET",
     ) -> tuple[int, str | None] | None:
         """
-        Make a GET request for existence checks.
+        Make a request for existence checks.
 
         Uses streaming so the body is only downloaded when needed.
 
@@ -153,33 +154,42 @@ class HTTPClient:
             read_body: Whether to read the response body. When False the
                 connection is closed right after the status line, which is
                 much cheaper (used for status-code-only checks).
+            method: HTTP method to use ("GET" or "HEAD").
 
         Returns:
             ``(status_code, body_text)`` tuple, or None on request error.
-            ``body_text`` is ``None`` when ``read_body`` is False.
+            ``body_text`` is ``None`` when ``read_body`` is False or the
+            method is "HEAD".
         """
         if not self._client:
             raise RuntimeError("HTTPClient not initialized. Use 'async with'.")
 
         await self.rate_limiter.acquire()
 
+        tor_client = self.tor_client if self.use_tor else None
+        if tor_client and tor_client.should_rotate():
+            tor_client.rotate_circuit()
+
         try:
-            logger.debug(f"GET {url} (raw)")
+            logger.debug(f"{method} {url} (raw)")
             async with self._client.stream(
-                "GET",
+                method,
                 url,
                 params=params,
                 headers=headers,
                 follow_redirects=follow_redirects,
             ) as response:
                 status_code = response.status_code
-                if not read_body:
+                if method == "HEAD" or not read_body:
                     return status_code, None
                 content = await response.aread()
                 return status_code, content.decode("utf-8", errors="replace")
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {e}")
             return None
+        finally:
+            if tor_client:
+                tor_client.increment_request_count()
 
 
 class SyncHTTPClient:

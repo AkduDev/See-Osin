@@ -55,13 +55,22 @@ class UsernameDomain(BaseModule):
         """Check if at least one provider is available."""
         return len(self.providers) > 0
 
-    async def scan(self, username: str, modules: list[str] | None = None) -> UsernameResult:
+    async def scan(
+        self,
+        username: str,
+        modules: list[str] | None = None,
+        use_tor: bool | None = None,
+        use_cache: bool = True,
+    ) -> UsernameResult:
         """
         Search for a username across social platforms.
 
         Args:
             username: Username to search (e.g. "john_doe")
             modules: Optional list of specific providers to use
+            use_tor: Optional override to route requests through Tor.
+                When None, the value in the config file is used.
+            use_cache: Whether to serve repeat scans from the in-memory cache.
 
         Returns:
             UsernameResult with all found profiles
@@ -84,7 +93,10 @@ class UsernameDomain(BaseModule):
         if modules:
             providers = [p for p in providers if p.name in modules]
 
-        tasks = [self._run_provider(p, username, result) for p in providers]
+        tasks = [
+            self._run_provider(p, username, result, use_tor, use_cache)
+            for p in providers
+        ]
         await asyncio.gather(*tasks, return_exceptions=True)
 
         result.found_count = sum(1 for p in result.profiles if p.found)
@@ -102,11 +114,20 @@ class UsernameDomain(BaseModule):
         """Validate username format."""
         return bool(re.match(USERNAME_REGEX, username))
 
-    async def _run_provider(self, provider: Any, username: str, result: UsernameResult) -> None:
+    async def _run_provider(
+        self,
+        provider: Any,
+        username: str,
+        result: UsernameResult,
+        use_tor: bool | None = None,
+        use_cache: bool = True,
+    ) -> None:
         """Run a single provider and update result."""
         try:
             logger.info(f"Running provider: {provider.name}")
-            profiles = await provider.get_profiles(username, self.config)
+            profiles = await provider.get_profiles(
+                username, self.config, use_tor=use_tor, use_cache=use_cache
+            )
 
             if profiles:
                 result.profiles.extend(profiles)
