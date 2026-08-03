@@ -4,15 +4,16 @@ This is our own implementation: it does NOT shell out to the Sherlock CLI.
 Instead it iterates the platforms in ``platforms.py``, builds each profile
 URL and classifies the result by HTTP status code, HTML body text, or a
 manual-review flag.
+
+Optimizations:
+- Status-code platforms skip downloading the response body (streamed).
+- One hard timeout per request; bounded concurrency via a semaphore.
 """
 
 from __future__ import annotations
 
 import asyncio
-import re
 from typing import Any
-
-import httpx
 
 from see.core.types import SocialResult
 from see.modules.usernames.providers.base import BaseUsernameProvider
@@ -25,8 +26,8 @@ from see.utils.logger import get_logger
 logger = get_logger("sherlock_like_provider")
 
 # Concurrency control for the mass HTTP checks
-MAX_CONCURRENCY = 10
-CHECK_TIMEOUT = 12.0
+MAX_CONCURRENCY = 12
+CHECK_TIMEOUT = 8.0
 REQUESTS_PER_MINUTE = 600
 
 
@@ -98,106 +99,91 @@ class SherlockLikeProvider(BaseUsernameProvider):
             method = platform.get("method", "status")
 
             if method == "manual":
-                return SocialResult(
-                    source="sherlock",
-                    platform=name,
-                    username=username,
-                    name="",
-                    url=url,
-                    found=False,
-                    status="check_manually",
-                )
+                return self._make_result(name, username, url, found=False, status="check_manually")
 
             headers = dict(platform.get("headers") or {})
             headers.setdefault("User-Agent", USER_AGENT)
 
+            # Only download the body when we actually inspect the HTML text
             try:
-                # Hard cap per request so a hung DNS/connect cannot stall the scan
-                response = await asyncio.wait_for(
-                    client.get_response(url, headers=headers),
+                raw = await asyncio.wait_for(
+                    client.get_response(
+                        url,
+                        headers=headers,
+                        read_body=(method == "text"),
+                    ),
                     timeout=CHECK_TIMEOUT,
                 )
             except Exception:
-                return self._error_result(username, name, url, "timeout")
+                return self._make_result(name, username, url, status="error", error="timeout")
 
-            if response is None:
-                return self._error_result(username, name, url, "request_error")
+            if raw is None:
+                return self._make_result(name, username, url, status="error", error="request_error")
 
-            status_code = response.status_code
-            text = response.text
+            status_code, text = raw
 
             if method == "text":
-                return self._classify_text(username, name, url, status_code, text, platform)
+                return self._classify_text(name, username, url, status_code, text or "", platform)
 
-            return self._classify_status(username, name, url, status_code)
+            return self._classify_status(name, username, url, status_code)
 
     def _classify_status(
         self,
-        username: str,
         name: str,
+        username: str,
         url: str,
         status_code: int,
     ) -> SocialResult:
         """Classify a platform result based only on HTTP status code."""
         if status_code == 200:
-            return SocialResult(
-                source="sherlock", platform=name, username=username,
-                name="", url=url, found=True, status="found",
-            )
+            return self._make_result(name, username, url, found=True, status="found")
         if status_code in (404, 410, 400):
-            return SocialResult(
-                source="sherlock", platform=name, username=username,
-                name="", url=url, found=False, status="not_found",
-            )
+            return self._make_result(name, username, url, status="not_found")
         if status_code == 429:
-            return self._error_result(username, name, url, "rate_limited")
+            return self._make_result(name, username, url, status="error", error="rate_limited")
         if status_code == 403:
-            return self._error_result(username, name, url, "blocked")
-        return self._error_result(username, name, url, f"http_{status_code}")
+            return self._make_result(name, username, url, status="error", error="blocked")
+        return self._make_result(name, username, url, status="error", error=f"http_{status_code}")
 
     def _classify_text(
         self,
-        username: str,
         name: str,
+        username: str,
         url: str,
         status_code: int,
         text: str,
         platform: dict[str, Any],
     ) -> SocialResult:
         """Classify a platform that always returns 200 by inspecting body text."""
+        if status_code in (404, 410):
+            return self._make_result(name, username, url, status="not_found")
+
         if status_code == 200:
             error_text = platform.get("error_text", "")
-            if error_text and error_text.lower() in text.lower():
-                return SocialResult(
-                    source="sherlock", platform=name, username=username,
-                    name="", url=url, found=False, status="not_found",
-                )
-            return SocialResult(
-                source="sherlock", platform=name, username=username,
-                name="", url=url, found=True, status="found",
-            )
-        if status_code in (404, 410):
-            return SocialResult(
-                source="sherlock", platform=name, username=username,
-                name="", url=url, found=False, status="not_found",
-            )
-        return self._error_result(username, name, url, f"http_{status_code}")
+            lower_text = text.lower()
+            if error_text and error_text.lower() in lower_text:
+                return self._make_result(name, username, url, status="not_found")
+            return self._make_result(name, username, url, found=True, status="found")
 
-    def _error_result(
+        return self._make_result(name, username, url, status="error", error=f"http_{status_code}")
+
+    def _make_result(
         self,
-        username: str,
         name: str,
+        username: str,
         url: str,
-        reason: str,
+        found: bool = False,
+        status: str = "not_found",
+        error: str | None = None,
     ) -> SocialResult:
-        """Build a result for platforms that could not be checked."""
+        """Build a SocialResult consistently (single source of truth)."""
         return SocialResult(
             source="sherlock",
             platform=name,
             username=username,
             name="",
             url=url,
-            found=False,
-            status="error",
-            error=reason,
+            found=found,
+            status=status,
+            error=error,
         )

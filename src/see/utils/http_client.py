@@ -138,13 +138,25 @@ class HTTPClient:
         params: dict | None = None,
         headers: dict | None = None,
         follow_redirects: bool = True,
-    ) -> httpx.Response | None:
+        read_body: bool = True,
+    ) -> tuple[int, str | None] | None:
         """
-        Make a GET request and return the raw response.
+        Make a GET request for existence checks.
 
-        Unlike ``get()``, this does not parse JSON nor retry on non-2xx
-        statuses. It is useful for checking whether a resource exists by
-        inspecting the status code or body text (e.g. username search).
+        Uses streaming so the body is only downloaded when needed.
+
+        Args:
+            url: URL to request
+            params: Optional query parameters
+            headers: Optional request headers
+            follow_redirects: Whether to follow redirects
+            read_body: Whether to read the response body. When False the
+                connection is closed right after the status line, which is
+                much cheaper (used for status-code-only checks).
+
+        Returns:
+            ``(status_code, body_text)`` tuple, or None on request error.
+            ``body_text`` is ``None`` when ``read_body`` is False.
         """
         if not self._client:
             raise RuntimeError("HTTPClient not initialized. Use 'async with'.")
@@ -153,13 +165,18 @@ class HTTPClient:
 
         try:
             logger.debug(f"GET {url} (raw)")
-            response = await self._client.get(
+            async with self._client.stream(
+                "GET",
                 url,
                 params=params,
                 headers=headers,
                 follow_redirects=follow_redirects,
-            )
-            return response
+            ) as response:
+                status_code = response.status_code
+                if not read_body:
+                    return status_code, None
+                content = await response.aread()
+                return status_code, content.decode("utf-8", errors="replace")
         except httpx.RequestError as e:
             logger.error(f"Request error for {url}: {e}")
             return None
