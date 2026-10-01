@@ -86,7 +86,7 @@ see email-disposable user@example.com
 ### Environment Variables (Recommended)
 
 ```bash
-# Create .env file
+# Create .env file (auto-loaded from the project root at startup)
 cp .env.example .env
 
 # Add your API keys
@@ -96,6 +96,8 @@ HUNTER_API_KEY=your_key
 DEHASHED_API_KEY=your_key
 HIBP_API_KEY=your_key
 ```
+
+Real environment variables always take priority over `.env` values.
 
 ### Get Free API Keys
 
@@ -120,6 +122,7 @@ HIBP_API_KEY=your_key
 | `see email-disposable <email>` | Check if disposable | - |
 | `see email-verify <email>` | SMTP deliverability check (no mail sent) | ✓ |
 | `see username-scan <username>` | Search username across platforms | ✓ |
+| `see config --show` | Show current configuration and key status | - |
 | `see scan <target>` | Legacy full scan | ✓ |
 | `see version` | Show version | - |
 

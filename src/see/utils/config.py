@@ -64,13 +64,47 @@ class AppConfig(BaseModel):
     rate_limit: RateLimitConfig = RateLimitConfig()
 
 
+def _load_dotenv(path: Path | None = None) -> None:
+    """
+    Load KEY=VALUE pairs from a local .env file into os.environ.
+
+    Real environment variables always win (a key already set is never
+    overwritten). No external dependency: simple parser for the format
+    documented in .env.example (comments, optional ``export`` prefix,
+    optional quotes).
+    """
+    path = path or Path(".env")
+    if not path.is_file():
+        return
+
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if key.startswith("export "):
+            key = key[len("export "):].strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
 def load_config(config_path: Optional[Path] = None) -> AppConfig:
     """
     Load configuration with priority:
     1. Environment variables (highest)
-    2. Config file
-    3. Default values (lowest)
+    2. .env file (real environment always wins)
+    3. Config file
+    4. Default values (lowest)
     """
+    _load_dotenv()
+
     config_data = {}
 
     search_paths = [

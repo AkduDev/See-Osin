@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import typer
 from rich.console import Console
@@ -23,6 +24,34 @@ app = typer.Typer(
 )
 
 console = Console()
+
+FormatOption = Literal["json", "display", "both"]
+
+
+def _validate_format(format: str) -> str:
+    """Reject unknown --format values early (before any network call)."""
+    if format not in ("json", "display", "both"):
+        raise typer.BadParameter(
+            "format must be one of: json, display, both", param_hint="--format"
+        )
+    return format
+
+
+def _emit_result(result, display_fn, output, format, output_dir) -> None:
+    """
+    Render a scan result: display, JSON to stdout and/or save to a file.
+
+    Shared by all scan commands so output behavior stays consistent.
+    """
+    if format in ("display", "both"):
+        display_fn(result)
+
+    if format in ("json", "both"):
+        if output:
+            filepath = JSONFormatter(output_dir=output_dir).save(result, output)
+            typer.echo(f"\nResults saved to {filepath}", err=True)
+        elif format == "json":
+            typer.echo(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
 
 
 def _configure_console_encoding() -> None:
@@ -64,7 +93,7 @@ def main(ctx: typer.Context) -> None:
 def phone_scan(
     number: str = typer.Argument(help="Phone number (e.g., +34612345678)"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Complete phone number scan."""
     asyncio.run(_phone_scan(number, output, format, "scan"))
@@ -74,7 +103,7 @@ def phone_scan(
 def phone_carrier(
     number: str = typer.Argument(help="Phone number to check carrier"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Get carrier information."""
     asyncio.run(_phone_scan(number, output, format, "carrier"))
@@ -84,7 +113,7 @@ def phone_carrier(
 def phone_owner(
     number: str = typer.Argument(help="Phone number to find owner"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Find owner information."""
     asyncio.run(_phone_scan(number, output, format, "owner"))
@@ -94,7 +123,7 @@ def phone_owner(
 def phone_spam(
     number: str = typer.Argument(help="Phone number to check for spam reports"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Check spam/scam reports for a phone number."""
     asyncio.run(_phone_scan(number, output, format, "spam"))
@@ -127,6 +156,7 @@ async def _phone_scan(
     scan_type: str,
 ) -> None:
     """Common phone scan implementation."""
+    _validate_format(format)
     engine = SeeEngine()
     
     if scan_type == "scan":
@@ -146,20 +176,10 @@ async def _phone_scan(
     else:
         raise ValueError(f"Unknown scan type: {scan_type}")
     
-    # Display results
-    display = RichDisplay()
-    json_fmt = JSONFormatter(output_dir=engine.config.output.directory)
-    
-    if format in ("display", "both"):
-        display.display_phone(result)
-    
-    if format in ("json", "both"):
-        if output:
-            filepath = json_fmt.save(result, output)
-            typer.echo(f"\nResults saved to {filepath}", err=True)
-        elif format == "json":
-            import json
-            typer.echo(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    _emit_result(
+        result, RichDisplay().display_phone, output, format,
+        engine.config.output.directory,
+    )
 
 
 # ============================================================================
@@ -171,7 +191,7 @@ async def _phone_scan(
 def email_scan(
     email: str = typer.Argument(help="Email address to scan"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Complete email scan."""
     asyncio.run(_email_scan(email, output, format, "scan"))
@@ -181,7 +201,7 @@ def email_scan(
 def email_breaches(
     email: str = typer.Argument(help="Email address to check breaches"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Check email breaches."""
     asyncio.run(_email_scan(email, output, format, "breaches"))
@@ -191,7 +211,7 @@ def email_breaches(
 def email_social(
     email: str = typer.Argument(help="Email address to find social profiles"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Find social media profiles by email."""
     asyncio.run(_email_scan(email, output, format, "social"))
@@ -200,16 +220,18 @@ def email_social(
 @app.command()
 def email_disposable(
     email: str = typer.Argument(help="Email address to check if disposable"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Check if email is disposable."""
-    asyncio.run(_email_scan(email, None, "display", "disposable"))
+    asyncio.run(_email_scan(email, output, format, "disposable"))
 
 
 @app.command()
 def email_verify(
     email: str = typer.Argument(help="Email address to verify (SMTP, no mail sent)"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("display", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Verify email deliverability via SMTP (RCPT TO, no mail sent)."""
     asyncio.run(_email_scan(email, output, format, "verify"))
@@ -225,6 +247,7 @@ async def _email_scan(
     from see.core.engine import SeeEngine
     from see.modules.emails.domain import EmailDomain
 
+    _validate_format(format)
     engine = SeeEngine()
     domain = EmailDomain(engine.config)
     
@@ -241,20 +264,10 @@ async def _email_scan(
     else:
         raise ValueError(f"Unknown scan type: {scan_type}")
     
-    # Display results
-    display = RichDisplay()
-    json_fmt = JSONFormatter(output_dir=engine.config.output.directory)
-    
-    if format in ("display", "both"):
-        display.display_email(result)
-    
-    if format in ("json", "both"):
-        if output:
-            filepath = json_fmt.save(result, output)
-            typer.echo(f"\nResults saved to {filepath}", err=True)
-        elif format == "json":
-            import json
-            typer.echo(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    _emit_result(
+        result, RichDisplay().display_email, output, format,
+        engine.config.output.directory,
+    )
 
 
 # ============================================================================
@@ -266,7 +279,7 @@ async def _email_scan(
 def username_scan(
     username: str = typer.Argument(help="Username to search across social platforms"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
     tor: bool = typer.Option(False, "--tor", help="Route requests through Tor"),
     no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the in-memory result cache"),
 ) -> None:
@@ -285,26 +298,17 @@ async def _username_scan(
     from see.core.engine import SeeEngine
     from see.modules.usernames.domain import UsernameDomain
 
+    _validate_format(format)
     engine = SeeEngine()
     domain = UsernameDomain(engine.config)
     result = await domain.scan(
         username, use_tor=tor, use_cache=not no_cache
     )
 
-    # Display results
-    display = RichDisplay()
-    json_fmt = JSONFormatter(output_dir=engine.config.output.directory)
-
-    if format in ("display", "both"):
-        display.display_username(result)
-
-    if format in ("json", "both"):
-        if output:
-            filepath = json_fmt.save(result, output)
-            typer.echo(f"\nResults saved to {filepath}", err=True)
-        elif format == "json":
-            import json
-            typer.echo(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    _emit_result(
+        result, RichDisplay().display_username, output, format,
+        engine.config.output.directory,
+    )
 
 
 # ============================================================================
@@ -316,7 +320,7 @@ async def _username_scan(
 def scan(
     phone: str = typer.Argument(help="Phone number to scan"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
-    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+    format: FormatOption = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
 ) -> None:
     """Legacy scan command (use 'phone-scan' instead)."""
     asyncio.run(_phone_scan(phone, output, format, "scan"))
@@ -340,13 +344,23 @@ def config_cmd(
     """Configure See settings."""
     if show:
         config = load_config()
+        keys = [
+            ("NumVerify API Key", config.api_keys.numverify),
+            ("Abstract API Key", config.api_keys.abstract),
+            ("NumLookup API Key", config.api_keys.numlookup),
+            ("Hunter API Key", config.api_keys.hunter),
+            ("DeHashed API Key", config.api_keys.dehashed),
+            ("DeHashed Email", config.api_keys.dehashed_email),
+            ("HIBP API Key", config.api_keys.hibp),
+        ]
         typer.echo("\n=== Current Configuration ===")
-        typer.echo(f"NumVerify API Key: {'Configured' if config.api_keys.numverify else 'Not set'}")
-        typer.echo(f"Abstract API Key:  {'Configured' if config.api_keys.abstract else 'Not set'}")
-        typer.echo(f"NumLookup API Key: {'Configured' if config.api_keys.numlookup else 'Not set'}")
-        typer.echo(f"Tor Enabled:       {config.tor.enabled}")
-        typer.echo(f"Timeout:           {config.lookup.timeout}")
-        typer.echo(f"Retries:           {config.lookup.retries}")
+        for label, value in keys:
+            typer.echo(f"{label + ':':<22} {'Configured' if value else 'Not set'}")
+        typer.echo(f"{'Tor Enabled:':<22} {config.tor.enabled}")
+        typer.echo(f"{'Timeout:':<22} {config.lookup.timeout}")
+        typer.echo(f"{'Retries:':<22} {config.lookup.retries}")
+        typer.echo(f"{'Output directory:':<22} {config.output.directory}")
+        typer.echo(f"{'HIBP delay (s):':<22} {config.rate_limit.hibp_delay_seconds}")
     else:
         typer.echo("Use --show to view current configuration")
 

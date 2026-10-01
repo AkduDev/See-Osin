@@ -10,11 +10,14 @@ except ImportError:  # pragma: no cover - allows running without pytest installe
 
 def test_import():
     """Test that main modules can be imported."""
-    from see.core.types import (
-        PhoneResult, EmailResult, CarrierResult, OwnerResult, UsernameResult,
-    )
     from see.core.constants import DISPOSABLE_DOMAINS, FREE_EMAIL_PROVIDERS
-    from see.core.engine import SeeEngine
+    from see.core.types import (
+        CarrierResult,
+        EmailResult,
+        OwnerResult,
+        PhoneResult,
+        UsernameResult,
+    )
 
     assert PhoneResult is not None
     assert EmailResult is not None
@@ -27,8 +30,8 @@ def test_import():
 
 def test_username_module_registered():
     """Test that the usernames domain is registered."""
-    from see.modules import register_all_modules
     from see.core.registry import get_registry
+    from see.modules import register_all_modules
 
     register_all_modules()
     registry = get_registry()
