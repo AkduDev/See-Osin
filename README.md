@@ -8,11 +8,13 @@ Modular OSINT framework for phone number, email and username intelligence with T
 - Phone number validation and parsing
 - Carrier detection (phonenumbers, NumVerify, NumLookup)
 - Owner lookup (Abstract API)
+- Spam/scam community reports (Should I Answer)
+- Investigation links: Google/Bing/DDG dorks + Tellows, WhoCallsMe, Numlookup
 - Country and timezone lookup
 - Line type identification (mobile, fixed-line, VoIP, etc.)
 
 ### Email Intelligence
-- Breach data (Holehe account-existence check, DeHashed)
+- Breach data (Have I Been Pwned API, Holehe account-existence check, DeHashed)
 - Disposable email detection
 - Social media profiles (auto-verified: Gravatar, GitHub, Keybase + manual search links)
 - DNS analysis (MX, SPF, DKIM, DMARC)
@@ -69,6 +71,9 @@ see phone-validate +34612345678
 # Get carrier info
 see phone-carrier +34612345678
 
+# Check spam reports for a number
+see phone-spam +34612345678
+
 # Check breaches
 see email-breaches user@example.com
 
@@ -89,6 +94,7 @@ NUMVERIFY_API_KEY=your_key
 ABSTRACT_API_KEY=your_key
 HUNTER_API_KEY=your_key
 DEHASHED_API_KEY=your_key
+HIBP_API_KEY=your_key
 ```
 
 ### Get Free API Keys
@@ -96,6 +102,7 @@ DEHASHED_API_KEY=your_key
 - **NumVerify**: https://numverify.com (100 requests/month free)
 - **Abstract**: https://abstractapi.com (100 requests/month free)
 - **Hunter.io**: https://hunter.io (25 searches/month free)
+- **Have I Been Pwned**: https://haveibeenpwned.com/API/Key (paid, test key `00000000000000000000000000000000` for `@hibp-integration-tests.com`)
 - **DeHashed**: https://dehashed.com (paid)
 
 ## Commands
@@ -105,6 +112,7 @@ DEHASHED_API_KEY=your_key
 | `see phone-scan <phone>` | Full phone OSINT scan | ✓ |
 | `see phone-carrier <phone>` | Get carrier info | ✓ |
 | `see phone-owner <phone>` | Find owner info | ✓ |
+| `see phone-spam <phone>` | Spam/scam reports + investigation links | ✓ |
 | `see phone-validate <phone>` | Validate phone format | - |
 | `see email-scan <email>` | Full email OSINT scan | ✓ |
 | `see email-breaches <email>` | Check breaches | ✓ |

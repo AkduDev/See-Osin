@@ -13,10 +13,10 @@ class APIKeys(BaseModel):
 
     numverify: str = ""
     abstract: str = ""
-    opencellid: str = ""
     numlookup: str = ""
     hunter: str = ""
     dehashed: str = ""
+    hibp: str = ""
     # DeHashed uses HTTP Basic auth (account email as username, API key as password)
     dehashed_email: str = ""
 
@@ -37,7 +37,7 @@ class LookupConfig(BaseModel):
 
     timeout: int = 30
     retries: int = 3
-    modules: List[str] = ["phonenumbers", "numverify"]
+    modules: List[str] = ["phones"]
 
 
 class OutputConfig(BaseModel):
@@ -51,7 +51,6 @@ class RateLimitConfig(BaseModel):
     """Rate limiting settings."""
 
     numverify_per_minute: int = 10
-    opencellid_per_minute: int = 10
     hibp_delay_seconds: float = 3.0
 
 
@@ -100,8 +99,8 @@ def load_config(config_path: Optional[Path] = None) -> AppConfig:
     _set_api_key("SEE_NUMVERIFY_KEY", "NUMVERIFY_API_KEY", field="numverify")
     _set_api_key("SEE_ABSTRACT_KEY", "ABSTRACT_API_KEY", field="abstract")
     _set_api_key("SEE_NUMLOOKUP_KEY", "NUMLOOKUP_API_KEY", field="numlookup")
-    _set_api_key("SEE_OPENCELLID_KEY", "OPENCELLID_API_KEY", field="opencellid")
     _set_api_key("SEE_HUNTER_KEY", "HUNTER_API_KEY", field="hunter")
+    _set_api_key("SEE_HIBP_KEY", "HIBP_API_KEY", field="hibp")
     _set_api_key("SEE_DEHASHED_KEY", "DEHASHED_API_KEY", field="dehashed")
     _set_api_key("SEE_DEHASHED_EMAIL", "DEHASHED_EMAIL", field="dehashed_email")
 

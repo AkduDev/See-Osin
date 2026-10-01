@@ -7,13 +7,15 @@ from typing import Any
 
 import phonenumbers as pn
 
-from see.core.types import PhoneResult, CarrierResult, OwnerResult, SocialResult
+from see.core.types import PhoneResult
 from see.modules.base import BaseModule
 from see.modules.phones.providers import (
-    PhonenumbersProvider,
-    NumVerifyProvider,
-    NumLookupProvider,
     AbstractProvider,
+    DorksProvider,
+    NumLookupProvider,
+    NumVerifyProvider,
+    PhonenumbersProvider,
+    SpamProvider,
 )
 from see.utils.config import AppConfig, load_config
 from see.utils.logger import get_logger
@@ -40,6 +42,8 @@ class PhoneDomain(BaseModule):
             NumVerifyProvider(),
             NumLookupProvider(),
             AbstractProvider(),
+            SpamProvider(),
+            DorksProvider(),
         ]
         
         # Filter to only available providers
@@ -149,6 +153,29 @@ class PhoneDomain(BaseModule):
         
         return result
     
+    async def scan_spam(self, number: str) -> PhoneResult:
+        """Scan only for spam/scam reports and investigation links."""
+        parsed = self._parse_number(number)
+        
+        result = PhoneResult(
+            input_number=number,
+            e164=parsed.get("e164", ""),
+            valid=parsed.get("valid", False),
+            country=parsed.get("country", ""),
+            country_code=parsed.get("country_code", ""),
+        )
+        
+        tasks = []
+        for provider in self.providers:
+            if provider.supports_spam:
+                tasks.append(self._run_provider_spam(provider, result))
+            elif provider.supports_search_links:
+                tasks.append(self._run_provider_links(provider, result))
+        
+        await asyncio.gather(*tasks, return_exceptions=True)
+        
+        return result
+    
     def _parse_number(self, number: str) -> dict[str, Any]:
         """Parse phone number using phonenumbers library."""
         try:
@@ -204,6 +231,22 @@ class PhoneDomain(BaseModule):
                     if provider.name not in result.modules_used:
                         result.modules_used.append(provider.name)
             
+            # Spam reports
+            if provider.supports_spam:
+                spam = await provider.get_spam(result.e164, self.config)
+                if spam and not result.spam:
+                    result.spam = spam
+                    if provider.name not in result.modules_used:
+                        result.modules_used.append(provider.name)
+            
+            # Investigation links (dorks, lookup sites)
+            if provider.supports_search_links:
+                links = await provider.get_search_links(result.e164, self.config)
+                if links:
+                    result.search_links.extend(links)
+                    if provider.name not in result.modules_used:
+                        result.modules_used.append(provider.name)
+            
             logger.info(f"Provider {provider.name} completed")
             
         except Exception as e:
@@ -227,6 +270,26 @@ class PhoneDomain(BaseModule):
             owner = await provider.get_owner(result.e164, self.config)
             if owner and not result.owner:
                 result.owner = owner
+                result.modules_used.append(provider.name)
+        except Exception as e:
+            result.errors.append(f"{provider.name}: {str(e)}")
+    
+    async def _run_provider_spam(self, provider: Any, result: PhoneResult) -> None:
+        """Run provider for spam report lookup only."""
+        try:
+            spam = await provider.get_spam(result.e164, self.config)
+            if spam and not result.spam:
+                result.spam = spam
+                result.modules_used.append(provider.name)
+        except Exception as e:
+            result.errors.append(f"{provider.name}: {str(e)}")
+    
+    async def _run_provider_links(self, provider: Any, result: PhoneResult) -> None:
+        """Run provider for investigation links only."""
+        try:
+            links = await provider.get_search_links(result.e164, self.config)
+            if links:
+                result.search_links.extend(links)
                 result.modules_used.append(provider.name)
         except Exception as e:
             result.errors.append(f"{provider.name}: {str(e)}")

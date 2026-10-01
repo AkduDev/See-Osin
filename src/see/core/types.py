@@ -80,6 +80,19 @@ class DisposableResult(BaseResult):
 
 
 @dataclass
+class SpamResult(BaseResult):
+    """Result from phone spam/report lookup (e.g. Should I Answer)."""
+
+    number: str = ""
+    url: str = ""
+    rating: str = ""  # negative, positive, neutral, unknown
+    total_reports: int = 0
+    positive: int = 0
+    negative: int = 0
+    categories: list[str] = field(default_factory=list)
+
+
+@dataclass
 class EmailResult:
     """Aggregated result for email OSINT."""
     
@@ -197,7 +210,10 @@ class PhoneResult:
     # Results from providers
     carrier: CarrierResult | None = None
     owner: OwnerResult | None = None
+    spam: SpamResult | None = None
     social_profiles: list[SocialResult] = field(default_factory=list)
+    # Investigation links (Google dorks, spam DBs) - manual follow-up
+    search_links: list[SocialResult] = field(default_factory=list)
     
     # Metadata
     modules_used: list[str] = field(default_factory=list)
@@ -239,6 +255,27 @@ class PhoneResult:
                 "risk_level": self.owner.risk_level,
                 "source": self.owner.source,
             }
+        
+        if self.spam:
+            result["spam"] = {
+                "rating": self.spam.rating,
+                "total_reports": self.spam.total_reports,
+                "positive": self.spam.positive,
+                "negative": self.spam.negative,
+                "categories": self.spam.categories,
+                "url": self.spam.url,
+                "source": self.spam.source,
+            }
+        
+        if self.search_links:
+            result["search_links"] = [
+                {
+                    "platform": p.platform,
+                    "url": p.url,
+                    "status": p.status,
+                }
+                for p in self.search_links
+            ]
         
         if self.social_profiles:
             result["social_profiles"] = [

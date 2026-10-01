@@ -62,6 +62,34 @@ class RichDisplay:
         if result.owner and result.owner.risk_level:
             table.add_row("Risk", result.owner.risk_level)
 
+        # Spam reports
+        if result.spam:
+            rating = result.spam.rating
+            colors = {"negative": "red", "positive": "green", "neutral": "yellow"}
+            color = colors.get(rating, "dim")
+            table.add_row(
+                "Spam",
+                f"[{color}]{rating}[/{color}] "
+                f"({result.spam.positive}+ / {result.spam.negative}- "
+                f"de {result.spam.total_reports})",
+            )
+            if result.spam.categories:
+                table.add_row("", "")
+                table.add_row("Categorías", ", ".join(result.spam.categories[:5]))
+            if result.spam.url:
+                table.add_row("  →", f"[link={result.spam.url}]informes[/link]")
+
+        # Investigation links (dorks, spam databases)
+        if result.search_links:
+            table.add_row("", "")
+            table.add_row(
+                "[bold]BÚSQUEDAS[/bold]",
+                "[dim]dorks y bases de datos (manual)[/dim]",
+            )
+            for link in result.search_links[:8]:
+                label = link.platform.replace("dork_", "").replace("db_", "")
+                table.add_row("  🔍", f"[link={link.url}]{label}[/link]")
+
         # Source
         if result.modules_used:
             table.add_row("", "")

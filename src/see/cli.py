@@ -91,6 +91,16 @@ def phone_owner(
 
 
 @app.command()
+def phone_spam(
+    number: str = typer.Argument(help="Phone number to check for spam reports"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
+    format: str = typer.Option("both", "--format", "-f", help="Output format: json, display, both"),
+) -> None:
+    """Check spam/scam reports for a phone number."""
+    asyncio.run(_phone_scan(number, output, format, "spam"))
+
+
+@app.command()
 def phone_validate(
     number: str = typer.Argument(help="Phone number to validate"),
 ) -> None:
@@ -129,6 +139,10 @@ async def _phone_scan(
         from see.modules.phones.domain import PhoneDomain
         domain = PhoneDomain(engine.config)
         result = await domain.scan_owner(number)
+    elif scan_type == "spam":
+        from see.modules.phones.domain import PhoneDomain
+        domain = PhoneDomain(engine.config)
+        result = await domain.scan_spam(number)
     else:
         raise ValueError(f"Unknown scan type: {scan_type}")
     

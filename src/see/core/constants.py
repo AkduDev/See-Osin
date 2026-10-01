@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 # ============================================================================
 # Email Constants
 # ============================================================================
@@ -79,9 +78,11 @@ def get_phone_type_name(type_value: int) -> str:
 # Module Constants
 # ============================================================================
 
-# Default modules for different lookup types
-DEFAULT_MODULES = ["phonenumbers", "numverify", "numlookup", "maigret", "google_dorks", "social_media"]
-OWNER_MODULES = ["phonenumbers", "numverify", "numlookup", "abstract", "maigret", "google_dorks", "reverse_lookup", "social_media"]
+# Default modules for different lookup types.
+# Only the domain modules registered by see.modules.register_all_modules()
+# exist: providers (phonenumbers, spam, dorks, ...) live inside each domain.
+DEFAULT_MODULES = ["phones"]
+OWNER_MODULES = ["phones"]
 
 # Module name -> target field mapping
 MODULE_TARGET_FIELDS: dict[str, str] = {
@@ -89,12 +90,9 @@ MODULE_TARGET_FIELDS: dict[str, str] = {
     "numverify": "carrier",
     "numlookup": "carrier",
     "abstract": "owner",
-    "maigret": "social_profiles",
-    "google_dorks": "search_dorks",
-    "reverse_lookup": "owner",
-    "social_media": "social_profiles",
-    "opencellid": "location",
     "spam": "spam",
+    "dorks": "search_links",
+    "holehe": "breaches",
     "hibp": "breaches",
 }
 

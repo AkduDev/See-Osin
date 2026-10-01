@@ -1,4 +1,4 @@
-"""Tests for P1 (blocking bugs) and P2 (stubs) fixes."""
+"""Tests for P1 (blocking bugs), P2 (stubs) and P3 (new providers) fixes."""
 
 from __future__ import annotations
 
@@ -241,3 +241,191 @@ def test_dehashed_unavailable_without_account_email():
     provider = DeHashedProvider(config)
     assert provider.is_available is False
     assert provider._auth_headers(config) is None
+
+
+# ============================================================================
+# P3 - HIBP provider
+# ============================================================================
+
+
+def test_hibp_payload_mapping():
+    from see.modules.emails.providers.hibp import parse_hibp_payload
+
+    payload = [
+        {
+            "Name": "Adobe",
+            "Title": "Adobe",
+            "Domain": "adobe.com",
+            "BreachDate": "2013-10-04",
+            "PwnCount": 152445165,
+            "DataClasses": ["Email addresses", "Passwords"],
+        },
+        {
+            "Name": "LinkedIn",
+            "Title": None,
+            "Domain": "linkedin.com",
+            "BreachDate": "2012-05-05",
+            "PwnCount": 164620,
+            "DataClasses": ["Email addresses"],
+        },
+    ]
+
+    result = parse_hibp_payload(payload, "test@example.com")
+
+    assert result is not None
+    assert result.source == "hibp"
+    assert result.email == "test@example.com"
+    assert result.total_breaches == 2
+    assert result.breaches[0]["name"] == "Adobe"
+    assert result.breaches[0]["pwn_count"] == 152445165
+    # Title is null -> falls back to Name
+    assert result.breaches[1]["name"] == "LinkedIn"
+    assert result.sources == ["adobe.com", "linkedin.com"]
+
+
+def test_hibp_empty_payload_returns_none():
+    from see.modules.emails.providers.hibp import parse_hibp_payload
+
+    assert parse_hibp_payload([], "a@b.com") is None
+
+
+def test_hibp_requires_api_key():
+    from see.modules.emails.providers.hibp import HIBPProvider
+    from see.utils.config import AppConfig
+
+    config = AppConfig()
+    provider = HIBPProvider(config)
+    assert provider.is_available is False
+
+    config.api_keys.hibp = "0123456789abcdef0123456789abcdef"
+    assert HIBPProvider(config).is_available is True
+
+
+def test_email_domain_registers_hibp_only_with_key():
+    from see.modules.emails.domain import EmailDomain
+    from see.utils.config import AppConfig
+
+    config = AppConfig()
+    names = [p.name for p in EmailDomain(config).providers]
+    assert "hibp" not in names
+
+    config.api_keys.hibp = "test-key"
+    names = [p.name for p in EmailDomain(config).providers]
+    assert "hibp" in names
+
+
+def test_config_reads_hibp_key_env(monkeypatch):
+    from see.utils.config import load_config
+
+    monkeypatch.setenv("SEE_HIBP_KEY", "abcdef1234567890")
+    config = load_config()
+    assert config.api_keys.hibp == "abcdef1234567890"
+
+
+# ============================================================================
+# P3 - Spam provider (Should I Answer scraping)
+# ============================================================================
+
+_SAMPLE_SIA_PAGE = """
+<html><body>
+  <h1>612345678</h1>
+  <span>NEGATIVA VENDEDOR TELEFONICO</span>
+  <p>Numero de telefono 612345678 tiene evaluacion negativa.</p>
+  <div>5x negativa3x positiva</div>
+  <div>Categorias</div>
+  <div>4x Vendedor telefonico1x Servicios financieros</div>
+</body></html>
+"""
+
+
+def test_spam_parser_reads_rating_counts_categories():
+    from see.modules.phones.providers.spam import parse_shouldianswer
+
+    parsed = parse_shouldianswer(_SAMPLE_SIA_PAGE)
+
+    assert parsed["rating"] == "negative"
+    assert parsed["negative"] == 5
+    assert parsed["positive"] == 3
+    assert parsed["total_reports"] >= 8
+    assert any("Vendedor" in c for c in parsed["categories"])
+    # Rating words are not categories
+    assert not any("negativa" in c.lower() for c in parsed["categories"])
+
+
+def test_spam_parser_unknown_when_nothing_recognizable():
+    from see.modules.phones.providers.spam import parse_shouldianswer
+
+    parsed = parse_shouldianswer("<html><body>Nothing here</body></html>")
+
+    assert parsed["rating"] == "unknown"
+    assert parsed["total_reports"] == 0
+    assert parsed["categories"] == []
+
+
+def test_phone_domain_has_spam_and_dorks_providers():
+    from see.modules.phones.domain import PhoneDomain
+
+    names = [p.name for p in PhoneDomain().providers]
+    assert "spam" in names
+    assert "dorks" in names
+
+
+# ============================================================================
+# P3 - Dorks / investigation links
+# ============================================================================
+
+
+def test_dorks_builds_search_links():
+    from see.modules.phones.providers.dorks import build_search_links
+
+    links = build_search_links("+34612345678")
+
+    assert len(links) >= 8
+    urls = [lnk.url for lnk in links]
+    assert any("google.com/search" in u for u in urls)
+    assert any("tellows" in u for u in urls)
+    assert all(lnk.status == "check_manually" for lnk in links)
+    assert build_search_links("") == []
+
+
+def test_phone_result_serializes_spam_and_search_links():
+    from see.core.types import PhoneResult, SocialResult, SpamResult
+
+    result = PhoneResult(input_number="+34612345678")
+    result.spam = SpamResult(
+        source="shouldianswer",
+        rating="negative",
+        total_reports=8,
+        positive=3,
+        negative=5,
+        url="https://www.shouldianswer.co.uk/search?q=%2B34612345678",
+    )
+    result.search_links = [
+        SocialResult(
+            source="dorks",
+            platform="dork_google_exact",
+            url="https://www.google.com/search?q=x",
+            status="check_manually",
+        )
+    ]
+
+    data = result.to_dict()
+    assert data["spam"]["rating"] == "negative"
+    assert data["spam"]["negative"] == 5
+    assert data["search_links"][0]["platform"] == "dork_google_exact"
+
+
+# ============================================================================
+# P3 - Constants cleanup (orphan module references)
+# ============================================================================
+
+
+def test_constants_have_no_orphan_modules():
+    from see.core.constants import DEFAULT_MODULES, MODULE_TARGET_FIELDS, OWNER_MODULES
+
+    assert "maigret" not in DEFAULT_MODULES + OWNER_MODULES
+    assert "google_dorks" not in MODULE_TARGET_FIELDS
+    assert "social_media" not in MODULE_TARGET_FIELDS
+    assert "opencellid" not in MODULE_TARGET_FIELDS
+    assert MODULE_TARGET_FIELDS["hibp"] == "breaches"
+    assert MODULE_TARGET_FIELDS["dorks"] == "search_links"

@@ -13,6 +13,7 @@ from see.modules.emails.providers import (
     DisposableProvider,
     EmailIntelligenceProvider,
     GravatarProvider,
+    HIBPProvider,
     HoleheProvider,
     HunterProvider,
     ReverseEmailProvider,
@@ -55,6 +56,7 @@ class EmailDomain(BaseModule):
     def _init_providers(self) -> list:
         """Initialize available providers."""
         providers = [
+            HIBPProvider(self.config),
             HoleheProvider(),
             DisposableProvider(),
             SocialEmailProvider(),

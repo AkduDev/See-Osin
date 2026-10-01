@@ -8,9 +8,10 @@ api_keys:
   numlookup: ""
   numverify: ""
   abstract: ""
-  opencellid: ""
   hunter: ""
   dehashed: ""
+  dehashed_email: ""
+  hibp: ""
 
 # Tor configuration
 tor:
@@ -24,11 +25,9 @@ tor:
 lookup:
   timeout: 30
   retries: 3
+  # Domain modules (providers run inside their domain)
   modules:
-    - phonenumbers
-    - numverify
-    - numlookup
-    - abstract
+    - phones
 
 # Output settings
 output:
@@ -38,5 +37,5 @@ output:
 # Rate limiting
 rate_limit:
   numverify_per_minute: 10
-  opencellid_per_minute: 10
+  # HIBP free tier: ~1 request every 3 seconds
   hibp_delay_seconds: 3.0
