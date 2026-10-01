@@ -71,6 +71,11 @@ exclude = [".git", ".venv", "build", "dist"]
 select = ["E", "F", "N", "I", "B", "UP", "S", "A", "C4", "PT", "RUF"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# Tests are assertion-based; typer's Option/Argument defaults require B008
+"tests/**" = ["S101"]
+"src/see/cli.py" = ["B008"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

@@ -62,6 +62,14 @@ def test_invalid_format_rejected_before_any_scan():
     assert result.exit_code != 0
 
 
+def test_scan_commands_expose_tor_flags():
+    for command in ("phone-scan", "email-scan"):
+        result = runner.invoke(app, [command, "--help"])
+        assert result.exit_code == 0
+        assert "--tor" in result.output
+        assert "--no-tor" in result.output
+
+
 # ============================================================================
 # .env loading (README tells users to create .env - it must actually work)
 # ============================================================================

@@ -135,7 +135,7 @@ class UsernameDomain(BaseModule):
 
             logger.info(f"Provider {provider.name} completed")
         except Exception as e:
-            error_msg = f"Provider {provider.name} failed: {str(e)}"
+            error_msg = f"Provider {provider.name} failed: {e!s}"
             logger.error(error_msg)
             result.errors.append(error_msg)
 

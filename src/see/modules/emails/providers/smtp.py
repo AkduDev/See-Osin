@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import smtplib
-import socket
 from typing import Any
 
 from see.modules.emails.providers.base import BaseEmailProvider
@@ -124,8 +123,8 @@ class SMTPProvider(BaseEmailProvider):
 
             try:
                 server.quit()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"SMTP quit failed: {e}")
 
             return int(code)
 
@@ -135,7 +134,7 @@ class SMTPProvider(BaseEmailProvider):
         except smtplib.SMTPConnectError:
             logger.debug(f"SMTP connection failed for {mx_host}")
             return None
-        except (socket.timeout, TimeoutError):
+        except TimeoutError:
             logger.debug(f"SMTP timeout for {mx_host}")
             return None
         except Exception as e:

@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any
 
-from see.modules.emails.providers.base import BaseEmailProvider
 from see.core.types import SocialResult
+from see.modules.emails.providers.base import BaseEmailProvider
 from see.utils.config import AppConfig
 from see.utils.http_client import HTTPClient
 from see.utils.logger import get_logger
@@ -82,13 +81,6 @@ class GravatarProvider(BaseEmailProvider):
                 # Get profile URL
                 profile_url = entry.get("profileUrl", f"{GRAVATAR_BASE_URL}/{email_hash}")
                 
-                # Get photos
-                photos = entry.get("photos", [])
-                photo_url = photos[0].get("value", "") if photos else ""
-                
-                # Get accounts (social links)
-                accounts = entry.get("accounts", [])
-                
                 return SocialResult(
                     source="gravatar",
                     platform="gravatar",
@@ -122,4 +114,4 @@ class GravatarProvider(BaseEmailProvider):
     
     def _md5(self, text: str) -> str:
         """Generate MD5 hash for Gravatar."""
-        return hashlib.md5(text.encode()).hexdigest()
+        return hashlib.md5(text.encode()).hexdigest()  # noqa: S324 - Gravatar protocol requires MD5

@@ -112,15 +112,13 @@ def test_engine_has_scan_email():
 def test_engine_generic_scan_unknown_domain_raises():
     import asyncio
 
+    import pytest
+
     from see.core.engine import SeeEngine
 
     engine = SeeEngine()
-    try:
+    with pytest.raises(ValueError, match="nonexistent"):
         asyncio.run(engine.scan("target", domain="nonexistent"))
-    except ValueError as e:
-        assert "nonexistent" in str(e)
-    else:  # pragma: no cover
-        raise AssertionError("Expected ValueError")
 
 
 def test_module_aggregator_does_not_crash():

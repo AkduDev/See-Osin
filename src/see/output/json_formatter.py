@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from see.core.aggregator import OSINTResult  # noqa: F401  (legacy, kept for type compat)
+from see.core.aggregator import OSINTResult
 from see.utils.logger import get_logger
 
 logger = get_logger("json_formatter")
@@ -63,7 +63,7 @@ class JSONFormatter:
         path: Path | None = Path(filename) if filename is not None else None
 
         if path is None:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             target_clean = _target_name(result).replace("+", "").replace(" ", "")
             path = Path(f"scan_{target_clean}_{timestamp}.json")
 

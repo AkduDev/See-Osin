@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from see.core.constants import OWNER_MODULES
@@ -28,7 +28,7 @@ class OSINTResult:
     search_dorks: dict[str, Any] | None = None
     errors: list[str] = field(default_factory=list)
     modules_used: list[str] = field(default_factory=list)
-    query_time: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    query_time: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -173,7 +173,7 @@ class ModuleAggregator:
                 logger.debug(f"Module {module.name} returned no data")
 
         except Exception as e:
-            error_msg = f"Module {module.name} failed: {str(e)}"
+            error_msg = f"Module {module.name} failed: {e!s}"
             logger.error(error_msg)
             result.errors.append(error_msg)
 

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import dns.resolver
-from typing import Any
 
-from see.modules.emails.providers.base import BaseEmailProvider
-from see.core.types import DisposableResult
+import dns.resolver
+
 from see.core.constants import DISPOSABLE_DOMAINS, WEBMAIL_DOMAINS
+from see.core.types import DisposableResult
+from see.modules.emails.providers.base import BaseEmailProvider
 from see.utils.config import AppConfig
 from see.utils.logger import get_logger
 

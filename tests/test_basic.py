@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 try:
-    import pytest  # noqa: F401
+    import pytest
 except ImportError:  # pragma: no cover - allows running without pytest installed
     pytest = None
 

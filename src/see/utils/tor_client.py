@@ -68,8 +68,8 @@ class TorClient:
                 response = client.get("https://api.ipify.org")
                 if response.status_code == 200:
                     return response.text.strip()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Exit IP lookup failed: {e}")
         return None
 
     def connect(self, password: str | None = None) -> bool:
@@ -161,8 +161,8 @@ class TorClient:
             if client is not None:
                 try:
                     client.close()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Tor client close failed: {e}")
 
     async def async_fetch(self, url: str, **kwargs: Any) -> httpx.Response | None:
         """Async fetch a URL through Tor."""
@@ -182,8 +182,8 @@ class TorClient:
             if client is not None:
                 try:
                     await client.aclose()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Tor async client close failed: {e}")
 
 
 class TorManager:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from see.core.types import BreachResult, DisposableResult, SocialResult
 from see.utils.config import AppConfig
@@ -49,11 +48,11 @@ class BaseEmailProvider(ABC):
         """Check if provider is available."""
         ...
     
-    async def get_breaches(self, email: str, config: AppConfig) -> Optional[BreachResult]:
+    async def get_breaches(self, email: str, config: AppConfig) -> BreachResult | None:
         """Get breach information for email."""
         return None
     
-    async def check_disposable(self, email: str, config: AppConfig) -> Optional[DisposableResult]:
+    async def check_disposable(self, email: str, config: AppConfig) -> DisposableResult | None:
         """Check if email is disposable."""
         return None
     

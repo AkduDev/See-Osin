@@ -250,7 +250,7 @@ class PhoneDomain(BaseModule):
             logger.info(f"Provider {provider.name} completed")
             
         except Exception as e:
-            error_msg = f"Provider {provider.name} failed: {str(e)}"
+            error_msg = f"Provider {provider.name} failed: {e!s}"
             logger.error(error_msg)
             result.errors.append(error_msg)
     
@@ -262,7 +262,7 @@ class PhoneDomain(BaseModule):
                 result.carrier = carrier
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
     
     async def _run_provider_owner(self, provider: Any, result: PhoneResult) -> None:
         """Run provider for owner lookup only."""
@@ -272,7 +272,7 @@ class PhoneDomain(BaseModule):
                 result.owner = owner
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
     
     async def _run_provider_spam(self, provider: Any, result: PhoneResult) -> None:
         """Run provider for spam report lookup only."""
@@ -282,7 +282,7 @@ class PhoneDomain(BaseModule):
                 result.spam = spam
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
     
     async def _run_provider_links(self, provider: Any, result: PhoneResult) -> None:
         """Run provider for investigation links only."""
@@ -292,7 +292,7 @@ class PhoneDomain(BaseModule):
                 result.search_links.extend(links)
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
 
 
 # Module instance for registration

@@ -227,7 +227,7 @@ class SocialEmailProvider(BaseEmailProvider):
         values = {
             "email": email,
             "username": username,
-            "hash": hashlib.md5(email.lower().strip().encode()).hexdigest(),
+            "hash": hashlib.md5(email.lower().strip().encode()).hexdigest(),  # noqa: S324 - Gravatar protocol
         }
         return template.format_map(_SafeDict(values))
     
@@ -298,4 +298,4 @@ class SocialEmailProvider(BaseEmailProvider):
     
     def _md5(self, text: str) -> str:
         """Generate MD5 hash for Gravatar."""
-        return hashlib.md5(text.lower().strip().encode()).hexdigest()
+        return hashlib.md5(text.lower().strip().encode()).hexdigest()  # noqa: S324 - Gravatar protocol requires MD5

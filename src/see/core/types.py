@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 # ============================================================================
@@ -16,7 +16,7 @@ class BaseResult:
     """Base class for all OSINT results."""
     
     source: str
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     success: bool = True
     error: str | None = None
 
@@ -128,7 +128,7 @@ class EmailResult:
     # Metadata
     modules_used: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
-    query_time: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    query_time: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -218,7 +218,7 @@ class PhoneResult:
     # Metadata
     modules_used: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
-    query_time: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    query_time: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -308,7 +308,7 @@ class UsernameResult(BaseResult):
     # Metadata
     modules_used: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
-    query_time: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    query_time: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""

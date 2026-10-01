@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import dns.resolver
-import dns.reversename
 from typing import Any
 
+import dns.resolver
+import dns.reversename
+
 from see.modules.emails.providers.base import BaseEmailProvider
-from see.core.types import EmailResult
 from see.utils.config import AppConfig
 from see.utils.logger import get_logger
 
@@ -164,7 +164,8 @@ class EmailIntelligenceProvider(BaseEmailProvider):
                         txt = str(rdata).strip('"')
                         if 'v=DKIM1' in txt or 'k=rsa' in txt:
                             return txt
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"DKIM selector {selector} lookup failed: {e}")
                     continue
             return None
         

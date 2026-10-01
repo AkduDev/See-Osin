@@ -9,11 +9,11 @@ from see.modules.phones.providers.phonenumbers_provider import PhonenumbersProvi
 from see.modules.phones.providers.spam import SpamProvider
 
 __all__ = [
-    "BasePhoneProvider",
-    "NumVerifyProvider",
-    "NumLookupProvider",
     "AbstractProvider",
+    "BasePhoneProvider",
+    "DorksProvider",
+    "NumLookupProvider",
+    "NumVerifyProvider",
     "PhonenumbersProvider",
     "SpamProvider",
-    "DorksProvider",
 ]

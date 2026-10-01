@@ -153,6 +153,19 @@ see phone-scan +34612345678 --no-tor
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed project structure.
 
+## Development
+
+```bash
+# Install with dev tools
+pip install -e ".[dev]"
+
+# Lint (kept clean: 0 errors)
+ruff check src tests
+
+# Tests
+pytest -q
+```
+
 ## Security
 
 - API keys stored in environment variables (never committed)

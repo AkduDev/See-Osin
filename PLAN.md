@@ -1,5 +1,10 @@
 # See - Phone OSINT Tool - Plan de Implementación
 
+> **Nota**: este es el plan histórico original. El estado real del proyecto
+> (proveedores implementados, comandos, configuración) vive en `README.md`
+> y `ARCHITECTURE.md`. Las APIs marcadas como "CallTracer" se sustituyeron
+> por el scraping defensivo de Should I Answer (sin API pública fiable).
+
 ## Visión General
 
 **See** es una herramienta CLI en Python para obtener información en tiempo real de números de teléfono usando APIs online.
@@ -18,8 +23,8 @@
 | API | Free Tier | Datos |
 |-----|-----------|-------|
 | NumVerify | 100/mes | Carrier, validación, location, type |
-| HIBP | Gratis (3s delay) | Breaches |
-| CallTracer | 10/min | Spam reports |
+| HIBP | Key de pago (3s delay) | Breaches |
+| Should I Answer | Sin API (scraping público) | Spam reports |
 
 ## Estructura
 

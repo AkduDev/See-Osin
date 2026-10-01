@@ -272,7 +272,7 @@ class EmailDomain(BaseModule):
         
         except Exception as e:
             logger.error(f"Failed to gather intelligence: {e}")
-            result.errors.append(f"Intelligence gathering failed: {str(e)}")
+            result.errors.append(f"Intelligence gathering failed: {e!s}")
     
     async def _run_provider(self, provider: Any, result: EmailResult) -> None:
         """Run a single provider and update result."""
@@ -373,7 +373,7 @@ class EmailDomain(BaseModule):
             logger.info(f"Provider {provider.name} completed")
             
         except Exception as e:
-            error_msg = f"Provider {provider.name} failed: {str(e)}"
+            error_msg = f"Provider {provider.name} failed: {e!s}"
             logger.error(error_msg)
             result.errors.append(error_msg)
     
@@ -385,7 +385,7 @@ class EmailDomain(BaseModule):
                 result.breaches = breaches
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
     
     async def _run_provider_social(self, provider: Any, result: EmailResult) -> None:
         """Run provider for social media lookup only."""
@@ -395,7 +395,7 @@ class EmailDomain(BaseModule):
                 result.social_profiles.extend(social)
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
     
     async def _run_provider_disposable(self, provider: Any, result: EmailResult) -> None:
         """Run provider for disposable check only."""
@@ -406,7 +406,7 @@ class EmailDomain(BaseModule):
                 result.is_disposable = disposable.is_disposable
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
     
     async def _run_provider_verify(self, provider: Any, result: EmailResult) -> None:
         """Run provider for SMTP deliverability verification only."""
@@ -416,7 +416,7 @@ class EmailDomain(BaseModule):
                 result.deliverability = verify
                 result.modules_used.append(provider.name)
         except Exception as e:
-            result.errors.append(f"{provider.name}: {str(e)}")
+            result.errors.append(f"{provider.name}: {e!s}")
 
 
 # Module instance for registration

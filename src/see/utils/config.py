@@ -2,7 +2,6 @@
 
 import os
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -29,7 +28,7 @@ class TorConfig(BaseModel):
     control_port: int = 9051
     max_requests_per_circuit: int = 10
     auto_rotate: bool = True
-    exit_countries: List[str] = []
+    exit_countries: list[str] = []
 
 
 class LookupConfig(BaseModel):
@@ -37,7 +36,7 @@ class LookupConfig(BaseModel):
 
     timeout: int = 30
     retries: int = 3
-    modules: List[str] = ["phones"]
+    modules: list[str] = ["phones"]
 
 
 class OutputConfig(BaseModel):
@@ -95,7 +94,7 @@ def _load_dotenv(path: Path | None = None) -> None:
             os.environ[key] = value
 
 
-def load_config(config_path: Optional[Path] = None) -> AppConfig:
+def load_config(config_path: Path | None = None) -> AppConfig:
     """
     Load configuration with priority:
     1. Environment variables (highest)
