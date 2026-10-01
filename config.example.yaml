@@ -8,6 +8,9 @@ api_keys:
   numlookup: ""
   numverify: ""
   abstract: ""
+  opencellid: ""
+  hunter: ""
+  dehashed: ""
 
 # Tor configuration
 tor:
@@ -26,8 +29,6 @@ lookup:
     - numverify
     - numlookup
     - abstract
-    - maigret
-    - google_dorks
 
 # Output settings
 output:
@@ -37,4 +38,5 @@ output:
 # Rate limiting
 rate_limit:
   numverify_per_minute: 10
-  numlookup_per_minute: 10
+  opencellid_per_minute: 10
+  hibp_delay_seconds: 3.0

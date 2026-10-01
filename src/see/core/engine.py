@@ -22,6 +22,17 @@ class SeeEngine:
     def __init__(self, config: AppConfig | None = None):
         self.config = config or load_config()
         self.registry = get_registry()
+        self._ensure_modules_registered()
+    
+    @staticmethod
+    def _ensure_modules_registered() -> None:
+        """Register domain modules on first use (CLI never calls it explicitly)."""
+        from see.core.registry import get_registry as _get_registry
+
+        if not _get_registry().available_domains:
+            from see.modules import register_all_modules
+
+            register_all_modules()
     
     async def scan_phone(self, number: str, modules: list[str] | None = None) -> Any:
         """
@@ -39,13 +50,22 @@ class SeeEngine:
         domain = PhoneDomain(self.config)
         return await domain.scan(number, modules)
     
-    async def scan_username(self, username: str, modules: list[str] | None = None) -> Any:
+    async def scan_username(
+        self,
+        username: str,
+        modules: list[str] | None = None,
+        use_tor: bool | None = None,
+        use_cache: bool = True,
+    ) -> Any:
         """
         Search a username across social media platforms.
         
         Args:
             username: Username to search
             modules: Optional list of specific providers to use
+            use_tor: Optional override to route requests through Tor.
+                When None, the configured value is used.
+            use_cache: Whether to serve repeat scans from cache.
         
         Returns:
             UsernameResult with found profiles
@@ -53,7 +73,23 @@ class SeeEngine:
         from see.modules.usernames.domain import UsernameDomain
         
         domain = UsernameDomain(self.config)
-        return await domain.scan(username, modules)
+        return await domain.scan(username, modules, use_tor=use_tor, use_cache=use_cache)
+    
+    async def scan_email(self, email: str, modules: list[str] | None = None) -> Any:
+        """
+        Scan an email address.
+
+        Args:
+            email: Email address to scan
+            modules: Optional list of specific providers to use
+
+        Returns:
+            EmailResult with aggregated data
+        """
+        from see.modules.emails.domain import EmailDomain
+
+        domain = EmailDomain(self.config)
+        return await domain.scan(email, modules)
     
     async def scan(self, target: str, domain: str = "phones", **kwargs) -> Any:
         """
@@ -67,6 +103,7 @@ class SeeEngine:
         Returns:
             Result from the domain module
         """
+        self._ensure_modules_registered()
         module = self.registry.get_module_by_domain(domain)
         
         if module is None:
@@ -77,4 +114,5 @@ class SeeEngine:
     
     def get_available_domains(self) -> list[str]:
         """Get list of available domains."""
+        self._ensure_modules_registered()
         return self.registry.available_domains

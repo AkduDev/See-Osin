@@ -107,25 +107,25 @@ async def _phone_scan(
         result = await engine.scan_phone(number)
     elif scan_type == "carrier":
         from see.modules.phones.domain import PhoneDomain
-        domain = PhoneDomain()
+        domain = PhoneDomain(engine.config)
         result = await domain.scan_carrier(number)
     elif scan_type == "owner":
         from see.modules.phones.domain import PhoneDomain
-        domain = PhoneDomain()
+        domain = PhoneDomain(engine.config)
         result = await domain.scan_owner(number)
     else:
         raise ValueError(f"Unknown scan type: {scan_type}")
     
     # Display results
     display = RichDisplay()
-    json_fmt = JSONFormatter()
+    json_fmt = JSONFormatter(output_dir=engine.config.output.directory)
     
     if format in ("display", "both"):
         display.display_phone(result)
     
     if format in ("json", "both"):
         if output:
-            filepath = json_fmt.save(result.to_dict(), output.name)
+            filepath = json_fmt.save(result, output)
             typer.echo(f"\nResults saved to {filepath}", err=True)
         elif format == "json":
             import json
@@ -182,9 +182,11 @@ async def _email_scan(
     scan_type: str,
 ) -> None:
     """Common email scan implementation."""
+    from see.core.engine import SeeEngine
     from see.modules.emails.domain import EmailDomain
-    
-    domain = EmailDomain()
+
+    engine = SeeEngine()
+    domain = EmailDomain(engine.config)
     
     if scan_type == "scan":
         result = await domain.scan(email)
@@ -199,14 +201,14 @@ async def _email_scan(
     
     # Display results
     display = RichDisplay()
-    json_fmt = JSONFormatter()
+    json_fmt = JSONFormatter(output_dir=engine.config.output.directory)
     
     if format in ("display", "both"):
         display.display_email(result)
     
     if format in ("json", "both"):
         if output:
-            filepath = json_fmt.save(result.to_dict(), output.name)
+            filepath = json_fmt.save(result, output)
             typer.echo(f"\nResults saved to {filepath}", err=True)
         elif format == "json":
             import json
@@ -238,23 +240,25 @@ async def _username_scan(
     no_cache: bool = False,
 ) -> None:
     """Common username scan implementation."""
+    from see.core.engine import SeeEngine
     from see.modules.usernames.domain import UsernameDomain
 
-    domain = UsernameDomain()
+    engine = SeeEngine()
+    domain = UsernameDomain(engine.config)
     result = await domain.scan(
         username, use_tor=tor, use_cache=not no_cache
     )
 
     # Display results
     display = RichDisplay()
-    json_fmt = JSONFormatter()
+    json_fmt = JSONFormatter(output_dir=engine.config.output.directory)
 
     if format in ("display", "both"):
         display.display_username(result)
 
     if format in ("json", "both"):
         if output:
-            filepath = json_fmt.save(result.to_dict(), output.name)
+            filepath = json_fmt.save(result, output)
             typer.echo(f"\nResults saved to {filepath}", err=True)
         elif format == "json":
             import json

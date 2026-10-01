@@ -80,31 +80,15 @@ class ModuleAggregator:
         self._register_builtin_modules()
 
     def _register_builtin_modules(self) -> None:
-        """Register all built-in modules."""
-        from see.modules import (
-            PhonenumbersModule,
-            NumVerifyModule,
-            NumLookupModule,
-            AbstractPersonModule,
-            MaigretModule,
-            GoogleDorksModule,
-            ReverseLookupModule,
-            SocialMediaModule,
-        )
+        """Register all built-in modules.
 
-        builtin_modules = [
-            PhonenumbersModule(),
-            NumVerifyModule(),
-            NumLookupModule(),
-            AbstractPersonModule(),
-            MaigretModule(),
-            GoogleDorksModule(),
-            ReverseLookupModule(),
-            SocialMediaModule(),
-        ]
-
-        for module in builtin_modules:
-            self.register_module(module)
+        NOTE: legacy compatibility shim. The old per-provider ``*Module``
+        classes no longer exist (domains now coordinate providers internally),
+        so there is nothing to auto-register here. Modules are registered
+        explicitly via :func:`see.modules.register_all_modules`.
+        Kept as a no-op so ``ModuleAggregator()`` no longer raises ImportError.
+        """
+        logger.debug("ModuleAggregator auto-registration is a legacy no-op")
 
     def register_module(self, module: BaseModule) -> None:
         """

@@ -59,6 +59,9 @@ Issues = "https://github.com/AkduDev/See-Osin/issues"
 [tool.hatch.version]
 path = "src/see/__init__.py"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/see"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"

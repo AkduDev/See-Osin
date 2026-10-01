@@ -84,44 +84,46 @@ def load_config(config_path: Optional[Path] = None) -> AppConfig:
                 config_data = yaml.safe_load(f) or {}
             break
 
-    # Override with environment variables
-    env_key = os.environ.get("SEE_NUMVERIFY_KEY")
-    if env_key:
-        if "api_keys" not in config_data:
-            config_data["api_keys"] = {}
-        config_data["api_keys"]["numverify"] = env_key
+    # Override with environment variables (SEE_ prefix wins, bare name as alias
+    # for README compatibility: e.g. HUNTER_API_KEY vs SEE_HUNTER_KEY)
+    def _set_api_key(*env_names: str, field: str) -> None:
+        for name in env_names:
+            value = os.environ.get(name)
+            if value:
+                if "api_keys" not in config_data:
+                    config_data["api_keys"] = {}
+                config_data["api_keys"][field] = value
+                break
 
-    env_key = os.environ.get("SEE_ABSTRACT_KEY")
-    if env_key:
-        if "api_keys" not in config_data:
-            config_data["api_keys"] = {}
-        config_data["api_keys"]["abstract"] = env_key
-
-    env_key = os.environ.get("SEE_NUMLOOKUP_KEY")
-    if env_key:
-        if "api_keys" not in config_data:
-            config_data["api_keys"] = {}
-        config_data["api_keys"]["numlookup"] = env_key
+    _set_api_key("SEE_NUMVERIFY_KEY", "NUMVERIFY_API_KEY", field="numverify")
+    _set_api_key("SEE_ABSTRACT_KEY", "ABSTRACT_API_KEY", field="abstract")
+    _set_api_key("SEE_NUMLOOKUP_KEY", "NUMLOOKUP_API_KEY", field="numlookup")
+    _set_api_key("SEE_OPENCELLID_KEY", "OPENCELLID_API_KEY", field="opencellid")
+    _set_api_key("SEE_HUNTER_KEY", "HUNTER_API_KEY", field="hunter")
+    _set_api_key("SEE_DEHASHED_KEY", "DEHASHED_API_KEY", field="dehashed")
 
     # Tor environment variables
-    tor_enabled = os.environ.get("SEE_TOR_ENABLED")
-    if tor_enabled:
-        if "tor" not in config_data:
-            config_data["tor"] = {}
-        config_data["tor"]["enabled"] = tor_enabled.lower() in ("true", "1", "yes")
+    def _set_tor(env_name: str, field: str, parse_bool: bool = False) -> None:
+        value = os.environ.get(env_name)
+        if value:
+            if "tor" not in config_data:
+                config_data["tor"] = {}
+            if parse_bool:
+                config_data["tor"][field] = value.lower() in ("true", "1", "yes")
+            elif value.isdigit():
+                config_data["tor"][field] = int(value)
+            else:
+                config_data["tor"][field] = value
 
-    # Hunter API key
-    env_key = os.environ.get("SEE_HUNTER_KEY")
-    if env_key:
-        if "api_keys" not in config_data:
-            config_data["api_keys"] = {}
-        config_data["api_keys"]["hunter"] = env_key
+    _set_tor("SEE_TOR_ENABLED", "enabled", parse_bool=True)
+    _set_tor("SEE_TOR_SOCKS_PORT", "socks_port")
+    _set_tor("SEE_TOR_CONTROL_PORT", "control_port")
 
-    # DeHashed API key
-    env_key = os.environ.get("SEE_DEHASHED_KEY")
-    if env_key:
-        if "api_keys" not in config_data:
-            config_data["api_keys"] = {}
-        config_data["api_keys"]["dehashed"] = env_key
+    # Output overrides
+    output_dir = os.environ.get("SEE_OUTPUT_DIR")
+    if output_dir:
+        if "output" not in config_data:
+            config_data["output"] = {}
+        config_data["output"]["directory"] = output_dir
 
     return AppConfig(**config_data)
