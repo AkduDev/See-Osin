@@ -120,6 +120,16 @@ class RichDisplay:
         webmail_icon = "[green]✓ Yes[/green]" if result.is_webmail else "[red]✗ No[/red]"
         table.add_row("Webmail", webmail_icon)
 
+        # SMTP deliverability
+        if result.deliverability:
+            deliv = result.deliverability
+            if deliv.get("mx_found"):
+                icon = "[green]✓ Deliverable[/green]" if deliv.get("is_deliverable") else "[red]✗ Not accepted[/red]"
+                code = deliv.get("smtp_code")
+                table.add_row("SMTP", f"{icon} (code {code}, MX {deliv.get('mx_host', '')})")
+            else:
+                table.add_row("SMTP", "[red]✗ No MX records[/red]")
+
         # Personal info
         if result.name or result.phone_numbers or result.location:
             table.add_row("", "")

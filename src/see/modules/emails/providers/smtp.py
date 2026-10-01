@@ -8,7 +8,6 @@ import socket
 from typing import Any
 
 from see.modules.emails.providers.base import BaseEmailProvider
-from see.core.types import DisposableResult
 from see.utils.config import AppConfig
 from see.utils.logger import get_logger
 
@@ -18,131 +17,127 @@ logger = get_logger("smtp_provider")
 class SMTPProvider(BaseEmailProvider):
     """
     Provider for SMTP email verification.
-    
-    Checks if an email address exists by connecting to the SMTP server
-    and verifying the recipient without sending any email.
+
+    Checks if an email address is deliverable by connecting to the
+    domain's MX server and issuing RCPT TO without sending any mail.
     No API key required.
+
+    Note: many providers (Gmail, Outlook, ...) accept-all or greylist,
+    so a negative result is conclusive but a positive one is not proof
+    that the mailbox exists.
     """
-    
+
     @property
     def name(self) -> str:
         return "smtp"
-    
+
     @property
     def description(self) -> str:
-        return "SMTP email verification - check if email exists"
-    
+        return "SMTP email verification - check if email is deliverable"
+
     @property
     def requires_api_key(self) -> bool:
         return False
-    
+
     @property
-    def supports_disposable(self) -> bool:
+    def supports_verification(self) -> bool:
         return True
-    
+
     @property
     def is_available(self) -> bool:
         """Check if provider is available."""
         return True
-    
-    async def check_disposable(self, email: str, config: AppConfig) -> DisposableResult | None:
-        """Check if email is deliverable via SMTP."""
+
+    async def verify_deliverability(
+        self, email: str, config: AppConfig
+    ) -> dict[str, Any] | None:
+        """Verify whether an email address looks deliverable via SMTP."""
         logger.info(f"Running SMTP verification for {email}")
-        
-        domain = email.split('@')[-1].lower() if '@' in email else ''
-        
+
+        domain = email.split("@")[-1].lower() if "@" in email else ""
+
         if not domain:
             return None
-        
+
         try:
-            # Get MX records
             mx_records = await self._get_mx_records(domain)
-            
+
             if not mx_records:
-                return DisposableResult(
-                    source="smtp",
-                    email=email,
-                    is_disposable=False,
-                    is_webmail=False,
-                    provider=domain.split('.')[0],
-                    mx_found=False,
-                )
-            
-            # Try to connect to SMTP server and verify email
-            is_deliverable = await self._verify_email(email, mx_records[0])
-            
-            return DisposableResult(
-                source="smtp",
-                email=email,
-                is_disposable=False,
-                is_webmail=False,
-                provider=domain.split('.')[0],
-                mx_found=True,
-            )
-            
+                return {
+                    "email": email,
+                    "domain": domain,
+                    "mx_found": False,
+                    "mx_host": "",
+                    "is_deliverable": False,
+                    "smtp_code": None,
+                }
+
+            code = await self._verify_email(email, mx_records[0])
+
+            return {
+                "email": email,
+                "domain": domain,
+                "mx_found": True,
+                "mx_host": mx_records[0],
+                "is_deliverable": code == 250,
+                "smtp_code": code,
+            }
+
         except Exception as e:
             logger.error(f"SMTP verification failed: {e}")
             return None
-    
+
     async def _get_mx_records(self, domain: str) -> list[str]:
         """Get MX records for domain."""
         try:
             import dns.resolver
-            
+
             def resolve_mx():
                 mx_records = []
-                answers = dns.resolver.resolve(domain, 'MX')
+                answers = dns.resolver.resolve(domain, "MX")
                 for rdata in sorted(answers, key=lambda x: x.preference):
-                    mx_records.append(str(rdata.exchange).rstrip('.'))
+                    mx_records.append(str(rdata.exchange).rstrip("."))
                 return mx_records
-            
+
             return await asyncio.to_thread(resolve_mx)
         except Exception as e:
             logger.debug(f"MX lookup failed for {domain}: {e}")
             return []
-    
-    async def _verify_email(self, email: str, mx_host: str) -> bool:
-        """Verify email by connecting to SMTP server."""
+
+    async def _verify_email(self, email: str, mx_host: str) -> int | None:
+        """Verify email by connecting to SMTP server. Returns SMTP code."""
         try:
-            # Run SMTP verification in a thread to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                self._smtp_check,
-                email,
-                mx_host,
-            )
-            return result
+            return await asyncio.to_thread(self._smtp_check, email, mx_host)
         except Exception as e:
             logger.error(f"SMTP check failed: {e}")
-            return False
-    
-    def _smtp_check(self, email: str, mx_host: str) -> bool:
-        """Perform SMTP check (sync)."""
+            return None
+
+    def _smtp_check(self, email: str, mx_host: str) -> int | None:
+        """Perform SMTP check (sync). Returns RCPT TO response code."""
         try:
-            # Connect to SMTP server
             server = smtplib.SMTP(timeout=10)
             server.connect(mx_host, 25)
-            server.helo('check-email-verify.com')
-            server.mail('check@check-email-verify.com')
-            
-            # Check if recipient exists
-            code, message = server.rcpt(email)
-            
-            server.quit()
-            
-            # Code 250 means recipient exists
-            return code == 250
-            
+            server.helo("check-email-verify.com")
+            server.mail("check@check-email-verify.com")
+
+            code, _message = server.rcpt(email)
+
+            try:
+                server.quit()
+            except Exception:
+                pass
+
+            return int(code)
+
         except smtplib.SMTPServerDisconnected:
             logger.debug(f"SMTP server disconnected for {mx_host}")
-            return False
+            return None
         except smtplib.SMTPConnectError:
             logger.debug(f"SMTP connection failed for {mx_host}")
-            return False
-        except socket.timeout:
+            return None
+        except (socket.timeout, TimeoutError):
             logger.debug(f"SMTP timeout for {mx_host}")
-            return False
+            return None
         except Exception as e:
             logger.debug(f"SMTP check error: {e}")
-            return False
+            return None

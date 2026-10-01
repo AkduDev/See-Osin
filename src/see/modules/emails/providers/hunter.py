@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from see.modules.emails.providers.base import BaseEmailProvider
 from see.core.types import SocialResult
+from see.modules.emails.providers.base import BaseEmailProvider
 from see.utils.config import AppConfig
 from see.utils.http_client import HTTPClient
 from see.utils.logger import get_logger
@@ -24,6 +24,10 @@ class HunterProvider(BaseEmailProvider):
     Requires API key from https://hunter.io
     """
     
+    def __init__(self, config: AppConfig | None = None):
+        self._config = config
+        self._cache: dict[str, Any] = {}
+
     @property
     def name(self) -> str:
         return "hunter"
@@ -44,7 +48,7 @@ class HunterProvider(BaseEmailProvider):
     def is_available(self) -> bool:
         """Check if API key is configured."""
         from see.utils.config import load_config
-        config = load_config()
+        config = self._config or load_config()
         return bool(config.api_keys.hunter)
     
     async def get_email_info(self, email: str, config: AppConfig) -> dict[str, Any] | None:
@@ -54,6 +58,12 @@ class HunterProvider(BaseEmailProvider):
         Returns:
             Dictionary with name, phone, company, job_title, social profiles
         """
+        import time
+
+        cached = self._cache.get(email)
+        if cached and (time.time() - cached["at"]) < 300:
+            return cached["data"]
+
         api_key = config.api_keys.hunter
         
         if not api_key:
@@ -77,6 +87,7 @@ class HunterProvider(BaseEmailProvider):
             
             if not data:
                 logger.error("Hunter.io request failed")
+                self._cache[email] = {"at": time.time(), "data": None}
                 return None
             
             # Extract information
@@ -98,7 +109,8 @@ class HunterProvider(BaseEmailProvider):
                 result["linkedin"] = metadata.get("linkedin", "")
                 result["twitter"] = metadata.get("twitter", "")
                 result["location"] = metadata.get("location", "")
-            
+
+            self._cache[email] = {"at": time.time(), "data": result}
             return result
     
     async def get_social_profiles(self, email: str, config: AppConfig) -> list[SocialResult]:

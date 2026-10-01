@@ -60,3 +60,12 @@ class BaseEmailProvider(ABC):
     async def get_social_profiles(self, email: str, config: AppConfig) -> list[SocialResult]:
         """Get social media profiles for email."""
         return []
+
+    @property
+    def supports_verification(self) -> bool:
+        """Whether this provider supports SMTP-style deliverability checks."""
+        return False
+
+    async def verify_deliverability(self, email: str, config: AppConfig) -> dict | None:
+        """Verify whether an email address is deliverable (RCPT TO, no mail sent)."""
+        return None

@@ -5,8 +5,8 @@ from __future__ import annotations
 import base64
 from typing import Any
 
-from see.modules.emails.providers.base import BaseEmailProvider
 from see.core.types import BreachResult, SocialResult
+from see.modules.emails.providers.base import BaseEmailProvider
 from see.utils.config import AppConfig
 from see.utils.http_client import HTTPClient
 from see.utils.logger import get_logger
@@ -19,12 +19,17 @@ DEHASHED_BASE_URL = "https://api.dehashed.com"
 class DeHashedProvider(BaseEmailProvider):
     """
     Provider using DeHashed API.
-    
-    Provides breach data, phone numbers, addresses, passwords,
+
+    Provides breach data, phone numbers, addresses,
     and usernames associated with an email address.
-    Requires API key from https://dehashed.com
+    Requires an account email + API key from https://dehashed.com
+    (HTTP Basic auth: account email as username, API key as password).
     """
-    
+
+    def __init__(self, config: AppConfig | None = None):
+        self._config = config
+        self._cache: dict[str, Any] = {}
+
     @property
     def name(self) -> str:
         return "dehashed"
@@ -47,10 +52,28 @@ class DeHashedProvider(BaseEmailProvider):
     
     @property
     def is_available(self) -> bool:
-        """Check if API key is configured."""
+        """Check if API credentials are configured."""
         from see.utils.config import load_config
-        config = load_config()
-        return bool(config.api_keys.dehashed)
+        config = self._config or load_config()
+        return bool(config.api_keys.dehashed and config.api_keys.dehashed_email)
+
+    def _auth_headers(self, config: AppConfig) -> dict[str, str] | None:
+        """Build HTTP Basic auth headers (account email + API key)."""
+        account = (config.api_keys.dehashed_email or "").strip()
+        api_key = (config.api_keys.dehashed or "").strip()
+
+        if not api_key:
+            logger.warning("DeHashed API key not configured")
+            return None
+        if not account:
+            logger.warning("DeHashed account email not configured (SEE_DEHASHED_EMAIL)")
+            return None
+
+        token = base64.b64encode(f"{account}:{api_key}".encode()).decode()
+        return {
+            "Authorization": f"Basic {token}",
+            "Accept": "application/json",
+        }
     
     async def get_breach_data(self, email: str, config: AppConfig, include_passwords: bool = False) -> dict[str, Any] | None:
         """
@@ -64,32 +87,30 @@ class DeHashedProvider(BaseEmailProvider):
         Returns:
             Dictionary with breaches, phone numbers, addresses, usernames
         """
-        api_key = config.api_keys.dehashed
-        
-        if not api_key:
-            logger.warning("DeHashed API key not configured")
+        import time
+
+        cached = self._cache.get(email)
+        if cached and (time.time() - cached["at"]) < 300:
+            return cached["data"]
+
+        headers = self._auth_headers(config)
+        if headers is None:
             return None
-        
+
         logger.info(f"Running DeHashed lookup for {email}")
-        
+
         url = f"{DEHASHED_BASE_URL}/search"
         params = {
             "query": f"email:{email}",
         }
-        
-        # DeHashed uses API key in headers
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Accept": "application/json",
-        }
-        
+
         async with HTTPClient(
             timeout=config.lookup.timeout,
             retries=config.lookup.retries,
             use_tor=config.tor.enabled,
         ) as client:
             data = await client.get(url, params=params, headers=headers)
-            
+
             if not data:
                 logger.error("DeHashed request failed")
                 return None
@@ -98,6 +119,8 @@ class DeHashedProvider(BaseEmailProvider):
             results = data.get("results", [])
             
             if not results:
+                # Cache negative result too (avoids re-query in same scan)
+                self._cache[email] = {"at": time.time(), "data": None}
                 return None
             
             # Aggregate data
@@ -159,7 +182,8 @@ class DeHashedProvider(BaseEmailProvider):
                 if entry.get("name"):
                     if entry["name"] not in aggregated["names"]:
                         aggregated["names"].append(entry["name"])
-            
+
+            self._cache[email] = {"at": time.time(), "data": aggregated}
             return aggregated
     
     async def get_breaches(self, email: str, config: AppConfig) -> BreachResult | None:

@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from see.core.constants import OWNER_MODULES
 from see.core.parser import PhoneInfo
-from see.core.constants import MODULE_TARGET_FIELDS, OWNER_MODULES, DEFAULT_MODULES
 from see.modules.base import BaseModule
 from see.utils.config import AppConfig, load_config
 from see.utils.logger import get_logger

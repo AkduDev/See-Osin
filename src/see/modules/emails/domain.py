@@ -6,18 +6,18 @@ import asyncio
 import re
 from typing import Any
 
-from see.core.types import EmailResult, BreachResult, DisposableResult, SocialResult
+from see.core.types import EmailResult
 from see.modules.base import BaseModule
 from see.modules.emails.providers import (
-    HoleheProvider,
-    DisposableProvider,
-    SocialEmailProvider,
-    EmailIntelligenceProvider,
-    ReverseEmailProvider,
-    HunterProvider,
     DeHashedProvider,
-    SMTPProvider,
+    DisposableProvider,
+    EmailIntelligenceProvider,
     GravatarProvider,
+    HoleheProvider,
+    HunterProvider,
+    ReverseEmailProvider,
+    SMTPProvider,
+    SocialEmailProvider,
 )
 from see.utils.config import AppConfig, load_config
 from see.utils.logger import get_logger
@@ -60,8 +60,8 @@ class EmailDomain(BaseModule):
             SocialEmailProvider(),
             EmailIntelligenceProvider(),
             ReverseEmailProvider(),
-            HunterProvider(),
-            DeHashedProvider(),
+            HunterProvider(self.config),
+            DeHashedProvider(self.config),
             SMTPProvider(),
             GravatarProvider(),
         ]
@@ -188,6 +188,22 @@ class EmailDomain(BaseModule):
                 tasks.append(self._run_provider_disposable(provider, result))
         
         await asyncio.gather(*tasks, return_exceptions=True)
+        
+        return result
+    
+    async def scan_verify(self, email: str) -> EmailResult:
+        """Verify deliverability of an email via SMTP (RCPT TO, no mail sent)."""
+        parsed = self._parse_email(email)
+        
+        result = EmailResult(
+            input_email=email,
+            valid=parsed.get("valid", False),
+            domain=parsed.get("domain", ""),
+        )
+        
+        for provider in self.providers:
+            if provider.supports_verification:
+                await self._run_provider_verify(provider, result)
         
         return result
     
@@ -343,6 +359,14 @@ class EmailDomain(BaseModule):
                         result.social_profiles.extend(social)
                         if provider.name not in result.modules_used:
                             result.modules_used.append(provider.name)
+                
+                # Verify deliverability (SMTP)
+                if provider.supports_verification:
+                    verify = await provider.verify_deliverability(result.input_email, self.config)
+                    if verify:
+                        result.deliverability = verify
+                        if provider.name not in result.modules_used:
+                            result.modules_used.append(provider.name)
             
             logger.info(f"Provider {provider.name} completed")
             
@@ -378,6 +402,16 @@ class EmailDomain(BaseModule):
             if disposable:
                 result.disposable = disposable
                 result.is_disposable = disposable.is_disposable
+                result.modules_used.append(provider.name)
+        except Exception as e:
+            result.errors.append(f"{provider.name}: {str(e)}")
+    
+    async def _run_provider_verify(self, provider: Any, result: EmailResult) -> None:
+        """Run provider for SMTP deliverability verification only."""
+        try:
+            verify = await provider.verify_deliverability(result.input_email, self.config)
+            if verify:
+                result.deliverability = verify
                 result.modules_used.append(provider.name)
         except Exception as e:
             result.errors.append(f"{provider.name}: {str(e)}")

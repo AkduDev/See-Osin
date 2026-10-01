@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Protocol
-
+from typing import Any
 
 # ============================================================================
 # Result Types
@@ -109,6 +108,9 @@ class EmailResult:
     breaches: BreachResult | None = None
     disposable: DisposableResult | None = None
     social_profiles: list[SocialResult] = field(default_factory=list)
+
+    # SMTP deliverability (see SMTPProvider.verify_deliverability)
+    deliverability: dict[str, Any] | None = None
     
     # Metadata
     modules_used: list[str] = field(default_factory=list)
@@ -157,6 +159,9 @@ class EmailResult:
                 "provider": self.disposable.provider,
                 "mx_found": self.disposable.mx_found,
             }
+
+        if self.deliverability:
+            result["deliverability"] = self.deliverability
         
         if self.social_profiles:
             result["social_profiles"] = [

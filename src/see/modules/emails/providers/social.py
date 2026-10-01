@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any
 
-from see.modules.emails.providers.base import BaseEmailProvider
 from see.core.types import SocialResult
+from see.modules.emails.providers.base import BaseEmailProvider
 from see.utils.config import AppConfig
 from see.utils.http_client import HTTPClient
 from see.utils.logger import get_logger
@@ -110,6 +109,13 @@ PLATFORMS = {
 }
 
 
+class _SafeDict(dict):
+    """dict subclass that returns the placeholder itself for missing keys."""
+
+    def __missing__(self, key: str) -> str:  # pragma: no cover - trivial
+        return "{" + key + "}"
+
+
 class SocialEmailProvider(BaseEmailProvider):
     """
     Enhanced provider for checking social media profiles by email.
@@ -155,6 +161,11 @@ class SocialEmailProvider(BaseEmailProvider):
             # Check each platform
             for platform_name, platform_info in PLATFORMS.items():
                 try:
+                    # gravatar is handled by the dedicated GravatarProvider
+                    # (avoids a duplicate request per scan)
+                    if platform_name == "gravatar":
+                        continue
+
                     if platform_info.get("requires_auth"):
                         # Skip platforms that require authentication
                         continue
@@ -166,11 +177,7 @@ class SocialEmailProvider(BaseEmailProvider):
                             platform=platform_name,
                             username=username,
                             name="",
-                            url=platform_info["url"].format(
-                                email=email,
-                                username=username,
-                                hash=self._md5(email),
-                            ),
+                            url=self._fmt_url(platform_info["url"], email, username),
                             found=False,
                             status="check_manually",
                         ))
@@ -199,11 +206,7 @@ class SocialEmailProvider(BaseEmailProvider):
     ) -> SocialResult | None:
         """Check a specific platform."""
         try:
-            url = platform_info["url"].format(
-                email=email,
-                username=username,
-                hash=self._md5(email),
-            )
+            url = self._fmt_url(platform_info["url"], email, username)
             
             if platform_name == "gravatar":
                 return await self._check_gravatar(client, email, url)
@@ -216,6 +219,17 @@ class SocialEmailProvider(BaseEmailProvider):
             logger.debug(f"Failed to check {platform_name}: {e}")
         
         return None
+    
+    @staticmethod
+    def _fmt_url(template: str, email: str, username: str) -> str:
+        """Format a URL template, ignoring placeholders we don't know
+        (e.g. {user_id} for discord) instead of raising KeyError."""
+        values = {
+            "email": email,
+            "username": username,
+            "hash": hashlib.md5(email.lower().strip().encode()).hexdigest(),
+        }
+        return template.format_map(_SafeDict(values))
     
     async def _check_gravatar(self, client: HTTPClient, email: str, url: str) -> SocialResult | None:
         """Check Gravatar for profile."""

@@ -25,6 +25,21 @@ app = typer.Typer(
 console = Console()
 
 
+def _configure_console_encoding() -> None:
+    """Avoid UnicodeEncodeError on legacy Windows consoles (cp1252).
+
+    Rich prints emoji in panel titles; when stdout/stderr use a legacy
+    codepage and errors='strict', rendering crashes. Replace instead.
+    """
+    import sys
+
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")  # type: ignore[union-attr]
+        except (AttributeError, ValueError):  # pragma: no cover - exotic streams
+            pass
+
+
 def _show_logo() -> None:
     """Display the See logo in terminal."""
     console.print(LOGO, style="bold cyan")
@@ -34,6 +49,7 @@ def _show_logo() -> None:
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
     """See OSINT Framework - Intelligence gathering tool."""
+    _configure_console_encoding()
     if ctx.invoked_subcommand is None:
         _show_logo()
         raise typer.Exit()
@@ -175,6 +191,16 @@ def email_disposable(
     asyncio.run(_email_scan(email, None, "display", "disposable"))
 
 
+@app.command()
+def email_verify(
+    email: str = typer.Argument(help="Email address to verify (SMTP, no mail sent)"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save results to JSON file"),
+    format: str = typer.Option("display", "--format", "-f", help="Output format: json, display, both"),
+) -> None:
+    """Verify email deliverability via SMTP (RCPT TO, no mail sent)."""
+    asyncio.run(_email_scan(email, output, format, "verify"))
+
+
 async def _email_scan(
     email: str,
     output: Path | None,
@@ -196,6 +222,8 @@ async def _email_scan(
         result = await domain.scan_social(email)
     elif scan_type == "disposable":
         result = await domain.scan_disposable(email)
+    elif scan_type == "verify":
+        result = await domain.scan_verify(email)
     else:
         raise ValueError(f"Unknown scan type: {scan_type}")
     

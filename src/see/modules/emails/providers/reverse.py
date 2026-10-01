@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from see.modules.emails.providers.base import BaseEmailProvider
 from see.core.types import SocialResult
+from see.modules.emails.providers.base import BaseEmailProvider
 from see.utils.config import AppConfig
-from see.utils.http_client import HTTPClient
 from see.utils.logger import get_logger
 
 logger = get_logger("reverse_email_provider")
@@ -117,41 +114,29 @@ class ReverseEmailProvider(BaseEmailProvider):
             },
         ]
         
-        async with HTTPClient(
-            timeout=config.lookup.timeout,
-            retries=config.lookup.retries,
-            use_tor=config.tor.enabled,
-        ) as client:
-            # Check search engines
-            for search in search_urls:
-                try:
-                    # Note: Actual web scraping would require more sophisticated approach
-                    # For now, we just generate search URLs
-                    profiles.append(SocialResult(
-                        source="reverse_email",
-                        platform=f"search_{search['name'].lower()}",
-                        username=email.split('@')[0],
-                        name="",
-                        url=search["url"],
-                        found=False,
-                        status="check_manually",
-                    ))
-                except Exception as e:
-                    logger.debug(f"Failed to generate {search['name']} search: {e}")
-            
-            # Check social platforms
-            for social in social_searches:
-                try:
-                    profiles.append(SocialResult(
-                        source="reverse_email",
-                        platform=f"social_{social['name'].lower()}",
-                        username=email.split('@')[0],
-                        name="",
-                        url=social["url"],
-                        found=False,
-                        status="check_manually",
-                    ))
-                except Exception as e:
-                    logger.debug(f"Failed to generate {social['name']} search: {e}")
-        
+        # NOTE: no HTTP request is made here. Real scraping needs JS/rendering
+        # or an API; we honestly return search links for manual investigation
+        # instead of pretending to have checked these platforms.
+        for search in search_urls:
+            profiles.append(SocialResult(
+                source="reverse_email",
+                platform=f"search_{search['name'].lower()}",
+                username=email.split('@')[0],
+                name="",
+                url=search["url"],
+                found=False,
+                status="check_manually",
+            ))
+
+        for social in social_searches:
+            profiles.append(SocialResult(
+                source="reverse_email",
+                platform=f"social_{social['name'].lower()}",
+                username=email.split('@')[0],
+                name="",
+                url=social["url"],
+                found=False,
+                status="check_manually",
+            ))
+
         return profiles

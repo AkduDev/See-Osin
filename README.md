@@ -12,11 +12,11 @@ Modular OSINT framework for phone number, email and username intelligence with T
 - Line type identification (mobile, fixed-line, VoIP, etc.)
 
 ### Email Intelligence
-- Breach data (Holehe, DeHashed)
+- Breach data (Holehe account-existence check, DeHashed)
 - Disposable email detection
-- Social media profiles (26+ platforms)
+- Social media profiles (auto-verified: Gravatar, GitHub, Keybase + manual search links)
 - DNS analysis (MX, SPF, DKIM, DMARC)
-- SMTP verification
+- SMTP verification (`see email-verify` — RCPT TO, no mail sent)
 - Gravatar lookup
 
 ### Username Intelligence (Sherlock-style)
@@ -110,6 +110,7 @@ DEHASHED_API_KEY=your_key
 | `see email-breaches <email>` | Check breaches | ✓ |
 | `see email-social <email>` | Find social profiles | ✓ |
 | `see email-disposable <email>` | Check if disposable | - |
+| `see email-verify <email>` | SMTP deliverability check (no mail sent) | ✓ |
 | `see username-scan <username>` | Search username across platforms | ✓ |
 | `see scan <target>` | Legacy full scan | ✓ |
 | `see version` | Show version | - |

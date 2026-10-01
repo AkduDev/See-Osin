@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -17,6 +17,8 @@ class APIKeys(BaseModel):
     numlookup: str = ""
     hunter: str = ""
     dehashed: str = ""
+    # DeHashed uses HTTP Basic auth (account email as username, API key as password)
+    dehashed_email: str = ""
 
 
 class TorConfig(BaseModel):
@@ -101,6 +103,7 @@ def load_config(config_path: Optional[Path] = None) -> AppConfig:
     _set_api_key("SEE_OPENCELLID_KEY", "OPENCELLID_API_KEY", field="opencellid")
     _set_api_key("SEE_HUNTER_KEY", "HUNTER_API_KEY", field="hunter")
     _set_api_key("SEE_DEHASHED_KEY", "DEHASHED_API_KEY", field="dehashed")
+    _set_api_key("SEE_DEHASHED_EMAIL", "DEHASHED_EMAIL", field="dehashed_email")
 
     # Tor environment variables
     def _set_tor(env_name: str, field: str, parse_bool: bool = False) -> None:
